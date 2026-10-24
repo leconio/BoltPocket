@@ -8,6 +8,14 @@ The working Android path uses OpenCL on a **Galaxy S25 / Adreno 830**, including
 
 **This is an experimental source release.** Physical-device results cover one S25 and one historical GGUF. iPhone installation, performance and persistent-cache restoration are not verified. Vulkan failed on the tested S25. The local model can omit instructions and incorrectly claim a task is complete. Read the [current limitations](docs/LIMITATIONS.md) before relying on the demo.
 
+## S25 cached-prefill demo
+
+Cached Hong Kong weather lookup in the project workspace on a Galaxy S25. The app restores **7,417 fixed-prefix tokens** and uses a Pi tool to fetch live HKO data, with model inference running on-device.
+
+https://github.com/user-attachments/assets/bce2af11-77f7-47a2-a8bc-bb64620d8b3e
+
+**27.4-second video:** the first 20 seconds play at **4×**; the final 7.4 seconds show the result at **1×**. Playback speed is labeled in the video. This weather demo is separate from the 142-second budget/itinerary task below; see [measured elapsed times and limitations](docs/BENCHMARKS.md).
+
 ## What was measured
 
 | S25 sample | Observation |
