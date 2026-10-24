@@ -1,0 +1,16 @@
+.expo
+android
+ios
+coverage
+dist
+node_modules
+pnpm-lock.yaml
+expo-env.d.ts
+CODEX_EXECUTION_PLAN.md
+PRODUCT_PROTOTYPE_ASCII.md
+
+# Immutable store-operation receipts and hash-bound patches.
+docs/release/app-store-connect
+docs/release/google-play
+docs/release/production-account-deletion-20260812
+packages/expo-bolt-runtime/cpp/llama/

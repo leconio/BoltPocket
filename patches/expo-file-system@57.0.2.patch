@@ -1,0 +1,19 @@
+diff --git a/android/src/main/java/expo/modules/filesystem/FileSystemFileHandle.kt b/android/src/main/java/expo/modules/filesystem/FileSystemFileHandle.kt
+index a39dfeb96731d8c75afa084742573ae0cebb0bc7..cccdec3e8ed3cd408f8329a251b492bdd8fa404b 100644
+--- a/android/src/main/java/expo/modules/filesystem/FileSystemFileHandle.kt
++++ b/android/src/main/java/expo/modules/filesystem/FileSystemFileHandle.kt
+@@ -81,6 +81,14 @@ class FileSystemFileHandle private constructor(
+         else -> throw Exceptions.IllegalArgument("Unsupported file mode: '$mode'")
+       }
+ 
++      // Some Android document providers accept the "wt" descriptor mode but
++      // do not actually truncate the existing document. Enforce the public
++      // FileMode.TRUNCATE contract on the writable channel as well.
++      if (mode == FileMode.TRUNCATE) {
++        channel.truncate(0)
++        channel.position(0)
++      }
++
+       return FileSystemFileHandle(channel, mode)
+     }
+   }

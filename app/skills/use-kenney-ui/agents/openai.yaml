@@ -1,0 +1,6 @@
+interface:
+  display_name: "使用 Kenney UI Pack"
+  short_description: "搜索并使用离线游戏控件皮肤与字体"
+  default_prompt: "Use $use-kenney-ui to search exact game UI assets, preserve semantic controls, declare the pack, and verify sizing in preview."
+policy:
+  allow_implicit_invocation: true

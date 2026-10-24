@@ -1,0 +1,8 @@
+{
+  "platforms": ["apple"],
+  "apple": {
+    "modules": ["BoltPocketStorefrontRegionModule"],
+    "podspecPath": "BoltPocketStorefrontRegion.podspec",
+    "swiftModuleName": "BoltPocketStorefrontRegion"
+  }
+}

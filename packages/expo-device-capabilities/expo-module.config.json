@@ -1,0 +1,13 @@
+{
+  "platforms": ["apple", "android"],
+  "apple": {
+    "modules": ["BoltPocketDeviceCapabilitiesModule"],
+    "podspecPath": "ios/BoltPocketDeviceCapabilities.podspec",
+    "swiftModuleName": "BoltPocketDeviceCapabilities"
+  },
+  "android": {
+    "modules": [
+      "dev.boltpocket.app.devicecapabilities.BoltPocketDeviceCapabilitiesModule"
+    ]
+  }
+}

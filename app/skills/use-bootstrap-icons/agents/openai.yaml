@@ -1,0 +1,6 @@
+interface:
+  display_name: "使用 Bootstrap Icons"
+  short_description: "搜索并正确引用离线界面字体图标"
+  default_prompt: "Use $use-bootstrap-icons to search exact Bootstrap icon class names, declare the pack in the H5 manifest, and verify the offline font in preview."
+policy:
+  allow_implicit_invocation: true

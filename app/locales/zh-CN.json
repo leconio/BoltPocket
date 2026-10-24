@@ -1,0 +1,19 @@
+{
+  "ios": {
+    "CFBundleDisplayName": "BoltPocket",
+    "NSLocalNetworkUsageDescription": "当你使用已配置的局域网模型、MCP、SSH、网站或项目能力时，BoltPocket需要访问局域网。",
+    "NSCameraUsageDescription": "允许你授权的网站和项目 H5 使用相机，或拍摄图片添加到对话。",
+    "NSCalendarsUsageDescription": "允许BoltPocket在你授权 Agent 日历操作时读取和修改日历。",
+    "NSCalendarsFullAccessUsageDescription": "允许BoltPocket在你授权 Agent 日历操作时读取和修改日历。",
+    "NSMicrophoneUsageDescription": "允许你授权的网站和项目 H5 使用麦克风。",
+    "NSLocationAlwaysAndWhenInUseUsageDescription": "BoltPocket为你授权的网站和项目 H5 提供定位支持；App 不申请后台定位，仅会在你使用 App 期间访问位置。",
+    "NSLocationWhenInUseUsageDescription": "允许你授权的网站和项目 H5 在使用期间读取当前位置。",
+    "NSMotionUsageDescription": "允许BoltPocket在你授权的 Agent 传感器请求，或你授权的网站和项目 H5 中读取设备动作与方向。",
+    "NSRemindersUsageDescription": "允许BoltPocket在你授权 Agent 提醒事项操作时读取和修改提醒事项。",
+    "NSRemindersFullAccessUsageDescription": "允许BoltPocket在你授权 Agent 提醒事项操作时读取和修改提醒事项。",
+    "NSPhotoLibraryUsageDescription": "允许你从照片图库选择图片，上传到网站或添加到对话。"
+  },
+  "android": {
+    "app_name": "BoltPocket"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "application": "BoltPocket",
+  "bundle_identifier": "dev.boltpocket.app",
+  "reused_code": "Author-owned mobile chat application and Pi runtime integration",
+  "pi_version": "0.83.0",
+  "llama_cpp_revision": "1a24df163920a4744a95373d178d790b72a9bb2f",
+  "opencl_q2k_pr": "https://github.com/ggml-org/llama.cpp/pull/30999",
+  "opencl_q2k_revision": "0c50cc146ac66155afdc219ef9004edafd5defb0",
+  "android_backend": "OpenCL with the stock vendor driver",
+  "compatibility": "Adreno 830 generic flat OpenCL Q4_K output projection; see tools/bolt/OPENCL.md",
+  "persistent_cache": "Android private fixed system/tool prefix; exact tokens and model/native identity; no user history",
+  "tested_build_run_id": "a27624f317934a9da705793e84fad7df",
+  "tested_build_source_sha256": "b9f7d3dce8ea7ff5955f64349338442d5e6b00abb21d9639a1062b8046305c46",
+  "export": "Application source preserved; operations, signing, Git history and package scripts removed or replaced for the standalone handoff",
+  "publication": "Independent public source repository; original operational Git history is excluded.",
+  "physical_evidence_scope": "Historical B13 Android build on S25; publication documentation and packaging are distinct from the frozen device build.",
+  "model_availability": "Recorded historical GGUF revision was not retrievable on 2026-10-24. Current same-name file differs; see docs/MODEL.md."
+}

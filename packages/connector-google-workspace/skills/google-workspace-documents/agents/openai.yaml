@@ -1,0 +1,4 @@
+interface:
+  display_name: "Google Workspace 文档"
+  short_description: "通过项目连接器读取、创建与安全编辑 Google 文档"
+  default_prompt: "使用 $google-workspace-documents 读取或修改我贴出的 Google Docs、Sheets 或 Slides 链接。"

@@ -1,0 +1,21 @@
+{
+  "sourcePackage": "react-native-quickjs-sandbox@1.0.1",
+  "sourceIntegrity": "sha512-YRaoIkLaRUh/21XRyvt1GIiI25m55IilICF1lFrQisQezh+NCRxL8PONFXhTqdGc6fYoSj8PDYVGgYzcic6BcQ==",
+  "files": {
+    "cpp/quickjs/cutils.c": "b73a403a59da30726257ddbdf5e399298941c1def997782ee0d4d33f796a80a2",
+    "cpp/quickjs/cutils.h": "d2da6d06a75b9e6c116c82b7a41df6bcc170c8b1779f374fa953ecf688eda647",
+    "cpp/quickjs/dtoa.c": "af5abd68fa9806d1a19bdd5f2daef00d5fd0990ae56311382dfed4700343f074",
+    "cpp/quickjs/dtoa.h": "462070f7678a894b9f3612422f280f4dce412eb360a5cc585a513f407fc23114",
+    "cpp/quickjs/libregexp-opcode.h": "2a98d646089f3a72f25480116297c5fdb5b28fd9f815447273951f4ade4a115e",
+    "cpp/quickjs/libregexp.c": "fdfcf86167029ab2c39c35730d4ae6875b7bbeb9406a0fcc886de4e9b1f5e2ac",
+    "cpp/quickjs/libregexp.h": "f5c5ef1899f224dcc718422a22c789ef9d8b5b837b622818fcfaf681ae793446",
+    "cpp/quickjs/libunicode-table.h": "cf782bc7a07549e976f606bd3cb8555858482b279574554dcb8d46412986006c",
+    "cpp/quickjs/libunicode.c": "26203ae888c0582e7d0e2113f13db0c9b39dc7b0b3836d68fa308c54f7a0898c",
+    "cpp/quickjs/libunicode.h": "ce310152bc80d7415dcb657e23abd9a40bf83e393c0d05d325dae384bb01d259",
+    "cpp/quickjs/list.h": "181c6b25d9d0e4853315d36a6e6fab3b2c3554271693d898a439384ba0f67c2b",
+    "cpp/quickjs/quickjs-atom.h": "342194359417664e652f54e7d682ee2ef91dd982e91f74decbde992a2c848236",
+    "cpp/quickjs/quickjs-opcode.h": "a9c60a8c9366820733d9d2acbb805f48b2e9e2778df526e6bcb845fdb6b47834",
+    "cpp/quickjs/quickjs.c": "60d915ad2ac07758da9b3610c4f1f2556852d86d415a92a7f3864e36814cd4f7",
+    "cpp/quickjs/quickjs.h": "2e6c5a5906f182ddae389f9711070208d26aaa92241543192456bfb32b4f6e3f"
+  }
+}

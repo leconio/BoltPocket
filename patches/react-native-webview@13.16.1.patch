@@ -1,0 +1,563 @@
+diff --git a/android/src/main/java/com/reactnativecommunity/webview/RNCWebView.java b/android/src/main/java/com/reactnativecommunity/webview/RNCWebView.java
+index d9f10d8..4314603 100644
+--- a/android/src/main/java/com/reactnativecommunity/webview/RNCWebView.java
++++ b/android/src/main/java/com/reactnativecommunity/webview/RNCWebView.java
+@@ -18,6 +18,8 @@ import androidx.annotation.NonNull;
+ import androidx.annotation.Nullable;
+ import androidx.webkit.JavaScriptReplyProxy;
++import androidx.webkit.ScriptHandler;
+ import androidx.webkit.WebMessageCompat;
++import androidx.webkit.WebViewAssetLoader;
+ import androidx.webkit.WebViewCompat;
+ import androidx.webkit.WebViewFeature;
+ 
+@@ -57,6 +59,8 @@ public class RNCWebView extends WebView implements LifecycleEventListener {
+     RNCWebViewBridge fallbackBridge;
+     protected @Nullable
+     WebViewCompat.WebMessageListener bridgeListener = null;
++    private @Nullable
++    ScriptHandler wieldDocumentStartScript = null;
+ 
+     /**
+      * android.webkit.WebChromeClient fundamentally does not support JS injection into frames other
+@@ -70,6 +71,15 @@ public class RNCWebView extends WebView implements LifecycleEventListener {
+     RNCWebViewMessagingModule mMessagingJSModule;
+     protected @Nullable
+     RNCWebViewClient mRNCWebViewClient;
++    private @Nullable
++    WebViewAssetLoader wieldProjectPreviewAssetLoader;
++    private @Nullable
++    String wieldProjectPreviewHost;
++    private boolean wieldAllowsFileDownloads = true;
++    private boolean wieldAllowsCamera = false;
++    private boolean wieldAllowsMicrophone = false;
++    private boolean wieldAllowsLocation = false;
++    private boolean wieldAllowsFileSelection = false;
+     protected boolean sendContentSizeChangeEvents = false;
+     private OnScrollDispatchHelper mOnScrollDispatchHelper;
+     protected boolean hasScrollEvent = false;
+@@ -91,6 +101,61 @@ public class RNCWebView extends WebView implements LifecycleEventListener {
+         progressChangedFilter = new ProgressChangedFilter();
+     }
+ 
++    public void setInhandProjectPreviewAssetLoader(
++            @Nullable WebViewAssetLoader loader,
++            @Nullable String host) {
++        wieldProjectPreviewAssetLoader = loader;
++        wieldProjectPreviewHost = host;
++    }
++
++    public @Nullable WebViewAssetLoader getInhandProjectPreviewAssetLoader() {
++        return wieldProjectPreviewAssetLoader;
++    }
++
++    public @Nullable String getInhandProjectPreviewHost() {
++        return wieldProjectPreviewHost;
++    }
++
++    public void setInhandAllowsFileDownloads(boolean allowed) {
++        wieldAllowsFileDownloads = allowed;
++    }
++
++    public boolean getInhandAllowsFileDownloads() {
++        return wieldAllowsFileDownloads;
++    }
++
++    public void setInhandAllowsCamera(boolean allowed) {
++        wieldAllowsCamera = allowed;
++    }
++
++    public boolean getInhandAllowsCamera() {
++        return wieldAllowsCamera;
++    }
++
++    public void setInhandAllowsMicrophone(boolean allowed) {
++        wieldAllowsMicrophone = allowed;
++    }
++
++    public boolean getInhandAllowsMicrophone() {
++        return wieldAllowsMicrophone;
++    }
++
++    public void setInhandAllowsLocation(boolean allowed) {
++        wieldAllowsLocation = allowed;
++    }
++
++    public boolean getInhandAllowsLocation() {
++        return wieldAllowsLocation;
++    }
++
++    public void setInhandAllowsFileSelection(boolean allowed) {
++        wieldAllowsFileSelection = allowed;
++    }
++
++    public boolean getInhandAllowsFileSelection() {
++        return wieldAllowsFileSelection;
++    }
++
+     public void setBasicAuthCredential(RNCBasicAuthCredential credential) {
+         mRNCWebViewClient.setBasicAuthCredential(credential);
+     }
+@@ -311,12 +379,30 @@ public class RNCWebView extends WebView implements LifecycleEventListener {
+     }
+ 
+     public void callInjectedJavaScriptBeforeContentLoaded() {
++        if (wieldDocumentStartScript != null) {
++            return;
++        }
+         if (getSettings().getJavaScriptEnabled() &&
+                 injectedJSBeforeContentLoaded != null &&
+                 !TextUtils.isEmpty(injectedJSBeforeContentLoaded)) {
+             evaluateJavascriptWithFallback("(function() {\n" + injectedJSBeforeContentLoaded + ";\n})();");
+             injectJavascriptObject();  // re-inject the Javascript object in case it has been overwritten.
+         }
+     }
+ 
++    public void configureInhandDocumentStartScript(@Nullable String script) {
++        if (wieldDocumentStartScript != null) {
++            wieldDocumentStartScript.remove();
++            wieldDocumentStartScript = null;
++        }
++        if (TextUtils.isEmpty(script) ||
++                !WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
++            return;
++        }
++        wieldDocumentStartScript = WebViewCompat.addDocumentStartJavaScript(
++                this,
++                "(function() {\n" + script + ";\n})();",
++                Set.of("*"));
++    }
++
+     protected String injectedJavaScriptObject = null;
+@@ -412,6 +499,10 @@ public class RNCWebView extends WebView implements LifecycleEventListener {
+     }
+ 
+     protected void cleanupCallbacksAndDestroy() {
++        if (wieldDocumentStartScript != null) {
++            wieldDocumentStartScript.remove();
++            wieldDocumentStartScript = null;
++        }
+         setWebViewClient(null);
+         destroy();
+     }
+diff --git a/android/src/main/java/com/reactnativecommunity/webview/RNCWebChromeClient.java b/android/src/main/java/com/reactnativecommunity/webview/RNCWebChromeClient.java
+--- a/android/src/main/java/com/reactnativecommunity/webview/RNCWebChromeClient.java
++++ b/android/src/main/java/com/reactnativecommunity/webview/RNCWebChromeClient.java
+@@ -34,6 +34,5 @@ import com.reactnativecommunity.webview.events.TopOpenWindowEvent;
+ 
+ import java.util.ArrayList;
+-import java.util.Collections;
+ import java.util.List;
+ 
+ public class RNCWebChromeClient extends WebChromeClient implements LifecycleEventListener {
+@@ -151,10 +150,12 @@ public class RNCWebChromeClient extends WebChromeClient implements LifecycleEven
+         for (String requestedResource : request.getResources()) {
+             String androidPermission = null;
+ 
+             if (requestedResource.equals(PermissionRequest.RESOURCE_AUDIO_CAPTURE)) {
++                if (!mWebView.getInhandAllowsMicrophone()) continue;
+                 androidPermission = Manifest.permission.RECORD_AUDIO;
+             } else if (requestedResource.equals(PermissionRequest.RESOURCE_VIDEO_CAPTURE)) {
++                if (!mWebView.getInhandAllowsCamera()) continue;
+                 androidPermission = Manifest.permission.CAMERA;
+             } else if(requestedResource.equals(PermissionRequest.RESOURCE_PROTECTED_MEDIA_ID)) {
+                 if (mAllowsProtectedMedia) {
+                   grantedPermissions.add(requestedResource);
+@@ -182,5 +183,9 @@ public class RNCWebChromeClient extends WebChromeClient implements LifecycleEven
+         if (requestedAndroidPermissions.isEmpty()) {
+-            request.grant(grantedPermissions.toArray(new String[0]));
++            if (grantedPermissions.isEmpty()) {
++                request.deny();
++            } else {
++                request.grant(grantedPermissions.toArray(new String[0]));
++            }
+             grantedPermissions = null;
+             return;
+         }
+@@ -197,16 +202,26 @@ public class RNCWebChromeClient extends WebChromeClient implements LifecycleEven
+     @Override
+     public void onGeolocationPermissionsShowPrompt(String origin, GeolocationPermissions.Callback callback) {
+ 
+-        if (ContextCompat.checkSelfPermission(this.mWebView.getThemedReactContext(), Manifest.permission.ACCESS_FINE_LOCATION)
++        if (!mWebView.getInhandAllowsLocation()) {
++            callback.invoke(origin, false, false);
++            return;
++        }
++
++        if (ContextCompat.checkSelfPermission(this.mWebView.getThemedReactContext(), Manifest.permission.ACCESS_FINE_LOCATION)
++                != PackageManager.PERMISSION_GRANTED
++                && ContextCompat.checkSelfPermission(this.mWebView.getThemedReactContext(), Manifest.permission.ACCESS_COARSE_LOCATION)
+                 != PackageManager.PERMISSION_GRANTED) {
+ 
+             /*
+              * Keep the trace of callback and origin for the async permission request
+              */
+             geolocationPermissionCallback = callback;
+             geolocationPermissionOrigin = origin;
+ 
+-            requestPermissions(Collections.singletonList(Manifest.permission.ACCESS_FINE_LOCATION));
++            ArrayList<String> locationPermissions = new ArrayList<>();
++            locationPermissions.add(Manifest.permission.ACCESS_COARSE_LOCATION);
++            locationPermissions.add(Manifest.permission.ACCESS_FINE_LOCATION);
++            requestPermissions(locationPermissions);
+ 
+         } else {
+             callback.invoke(origin, true, false);
+@@ -258,7 +273,9 @@ public class RNCWebChromeClient extends WebChromeClient implements LifecycleEven
+          * came from geolocation or camera/audio. This is why shouldAnswerToPermissionRequest is used
+          */
+         boolean shouldAnswerToPermissionRequest = false;
++        boolean locationResultReceived = false;
++        boolean locationGranted = false;
+ 
+         for (int i = 0; i < permissions.length; i++) {
+ 
+             String permission = permissions[i];
+@@ -267,15 +284,7 @@ public class RNCWebChromeClient extends WebChromeClient implements LifecycleEven
+-            if (permission.equals(Manifest.permission.ACCESS_FINE_LOCATION)
+-                    && geolocationPermissionCallback != null
+-                    && geolocationPermissionOrigin != null) {
+-
+-                if (granted) {
+-                    geolocationPermissionCallback.invoke(geolocationPermissionOrigin, true, false);
+-                } else {
+-                    geolocationPermissionCallback.invoke(geolocationPermissionOrigin, false, false);
+-                }
+-
+-                geolocationPermissionCallback = null;
+-                geolocationPermissionOrigin = null;
++            if (permission.equals(Manifest.permission.ACCESS_FINE_LOCATION)
++                    || permission.equals(Manifest.permission.ACCESS_COARSE_LOCATION)) {
++                locationResultReceived = true;
++                locationGranted = locationGranted || granted;
+             }
+ 
+             if (permission.equals(Manifest.permission.RECORD_AUDIO)) {
+@@ -301,3 +310,11 @@ public class RNCWebChromeClient extends WebChromeClient implements LifecycleEven
+         }
+ 
++        if (locationResultReceived
++                && geolocationPermissionCallback != null
++                && geolocationPermissionOrigin != null) {
++            geolocationPermissionCallback.invoke(geolocationPermissionOrigin, locationGranted, false);
++            geolocationPermissionCallback = null;
++            geolocationPermissionOrigin = null;
++        }
++
+         if (shouldAnswerToPermissionRequest
+@@ -331,6 +348,10 @@ public class RNCWebChromeClient extends WebChromeClient implements LifecycleEven
+     @Override
+     public boolean onShowFileChooser(WebView webView, ValueCallback<Uri[]> filePathCallback, FileChooserParams fileChooserParams) {
++        if (!mWebView.getInhandAllowsFileSelection()) {
++            filePathCallback.onReceiveValue(null);
++            return true;
++        }
+         String[] acceptTypes = fileChooserParams.getAcceptTypes();
+         boolean allowMultiple = fileChooserParams.getMode() == WebChromeClient.FileChooserParams.MODE_OPEN_MULTIPLE;
+ 
+         return this.mWebView.getThemedReactContext().getNativeModule(RNCWebViewModule.class).startPhotoPickerIntent(filePathCallback, acceptTypes, allowMultiple, fileChooserParams.isCaptureEnabled());
+diff --git a/android/src/main/java/com/reactnativecommunity/webview/RNCWebViewClient.java b/android/src/main/java/com/reactnativecommunity/webview/RNCWebViewClient.java
+index 47d4d33..1358b4b 100644
+--- a/android/src/main/java/com/reactnativecommunity/webview/RNCWebViewClient.java
++++ b/android/src/main/java/com/reactnativecommunity/webview/RNCWebViewClient.java
+@@ -3,5 +3,6 @@ package com.reactnativecommunity.webview;
+ import android.annotation.TargetApi;
+ import android.graphics.Bitmap;
++import android.net.Uri;
+ import android.net.http.SslError;
+ import android.os.Build;
+ import android.os.SystemClock;
+@@ -17,6 +18,7 @@ import android.webkit.WebViewClient;
+ import androidx.annotation.Nullable;
+ import androidx.annotation.RequiresApi;
+ import androidx.core.util.Pair;
++import androidx.webkit.WebViewAssetLoader;
+ 
+ import com.facebook.common.logging.FLog;
+ import com.facebook.react.bridge.Arguments;
+@@ -46,6 +48,33 @@ public class RNCWebViewClient extends WebViewClient {
+         basicAuthCredential = credential;
+     }
+ 
++    private @Nullable WebResourceResponse interceptInhandProjectPreview(WebView view, Uri uri) {
++        if (!(view instanceof RNCWebView)) {
++            return null;
++        }
++        WebViewAssetLoader loader = ((RNCWebView) view).getInhandProjectPreviewAssetLoader();
++        return loader == null ? null : loader.shouldInterceptRequest(uri);
++    }
++
++    @Override
++    public WebResourceResponse shouldInterceptRequest(WebView view, String url) {
++        WebResourceResponse response = interceptInhandProjectPreview(view, Uri.parse(url));
++        if (response != null) {
++            return response;
++        }
++        return super.shouldInterceptRequest(view, url);
++    }
++
++    @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
++    @Override
++    public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
++        WebResourceResponse response = interceptInhandProjectPreview(view, request.getUrl());
++        if (response != null) {
++            return response;
++        }
++        return super.shouldInterceptRequest(view, request);
++    }
++
+     @Override
+     public void onPageFinished(WebView webView, String url) {
+         super.onPageFinished(webView, url);
+@@ -96,6 +125,15 @@ public class RNCWebViewClient extends WebViewClient {
+     @Override
+     public boolean shouldOverrideUrlLoading(WebView view, String url) {
+         final RNCWebView rncWebView = (RNCWebView) view;
++        final String previewHost = rncWebView.getInhandProjectPreviewHost();
++        if (previewHost != null) {
++            final Uri candidate = Uri.parse(url);
++            if (!"https".equalsIgnoreCase(candidate.getScheme()) ||
++                    !previewHost.equalsIgnoreCase(candidate.getHost())) {
++                FLog.w(TAG, "Blocked navigation outside a Wield project preview.");
++                return true;
++            }
++        }
+         final boolean isJsDebugging = rncWebView.getReactApplicationContext().getJavaScriptContextHolder().get() == 0;
+ 
+         if (!isJsDebugging && rncWebView.mMessagingJSModule != null) {
+diff --git a/android/src/main/java/com/reactnativecommunity/webview/RNCWebViewManagerImpl.kt b/android/src/main/java/com/reactnativecommunity/webview/RNCWebViewManagerImpl.kt
+index 5aec987..817b61d 100644
+--- a/android/src/main/java/com/reactnativecommunity/webview/RNCWebViewManagerImpl.kt
++++ b/android/src/main/java/com/reactnativecommunity/webview/RNCWebViewManagerImpl.kt
+@@ -15,5 +15,6 @@ import android.webkit.DownloadListener
+ import android.webkit.WebSettings
+ import android.webkit.WebView
++import androidx.webkit.WebViewAssetLoader
+ import androidx.webkit.WebSettingsCompat
+ import androidx.webkit.WebViewFeature
+ import com.facebook.react.bridge.ReadableArray
+@@ -24,5 +25,6 @@ import com.facebook.react.uimanager.ThemedReactContext
+ import org.json.JSONException
+ import org.json.JSONObject
++import java.io.File
+ import java.io.UnsupportedEncodingException
+ import java.net.MalformedURLException
+ import java.net.URL
+@@ -47,5 +49,7 @@ class RNCWebViewManagerImpl(private val newArch: Boolean = false) {
+     private var mUserAgent: String? = null
+     private var mUserAgentWithApplicationName: String? = null
++    private val wieldPreviewHost =
++        "^preview-([a-f0-9]{32})\\.wield\\.invalid$".toRegex()
+     private val HTML_ENCODING = "UTF-8"
+     private val HTML_MIME_TYPE = "text/html"
+     private val HTTP_METHOD_POST = "POST"
+@@ -94,6 +98,14 @@ class RNCWebViewManagerImpl(private val newArch: Boolean = false) {
+             WebView.setWebContentsDebuggingEnabled(true)
+         }
+         webView.setDownloadListener(DownloadListener { url, userAgent, contentDisposition, mimetype, contentLength ->
++            if (!webView.getInhandAllowsFileDownloads()) {
++                Log.w(TAG, "Blocked a download disabled by Wield browser settings")
++                return@DownloadListener
++            }
++            if (webView.getInhandProjectPreviewHost() != null) {
++                Log.w(TAG, "Blocked a download from a Wield project preview")
++                return@DownloadListener
++            }
+             val module = webView.reactApplicationContext.getNativeModule(RNCWebViewModule::class.java) ?: return@DownloadListener
+             val request: DownloadManager.Request = try {
+                 DownloadManager.Request(Uri.parse(url))
+@@ -380,10 +388,69 @@ class RNCWebViewManagerImpl(private val newArch: Boolean = false) {
+ 
+     fun setSource(viewWrapper: RNCWebViewWrapper, source: ReadableMap?) {
+         mPendingSource = source
+     }
++
++    private fun configureInhandProjectPreview(view: RNCWebView, source: ReadableMap?) {
++        view.setInhandProjectPreviewAssetLoader(null, null)
++        val url = if (source?.hasKey("uri") == true) source.getString("uri") else null
++        val uri = try {
++            Uri.parse(url ?: return)
++        } catch (error: RuntimeException) {
++            return
++        }
++        if (uri.scheme != "https") return
++        val host = uri.host ?: return
++        val match = wieldPreviewHost.matchEntire(host) ?: return
++        val snapshotId = match.groupValues[1]
++        val previewBase = try {
++            File(view.context.cacheDir, "inhand/project-previews").canonicalFile
++        } catch (error: Exception) {
++            Log.w(TAG, "Unable to resolve the Wield preview cache", error)
++            return
++        }
++        val previewRoot = try {
++            File(previewBase, snapshotId).canonicalFile
++        } catch (error: Exception) {
++            Log.w(TAG, "Unable to resolve the Wield preview snapshot", error)
++            return
++        }
++        if (
++            !previewRoot.path.startsWith(previewBase.path + File.separator) ||
++            !previewRoot.isDirectory
++        ) {
++            Log.w(TAG, "Rejected an invalid Wield preview snapshot")
++            return
++        }
++        val builder = WebViewAssetLoader.Builder()
++            .setDomain(host)
++            .setHttpAllowed(false)
++            .addPathHandler(
++                "/content/",
++                WebViewAssetLoader.InternalStoragePathHandler(view.context, previewRoot)
++            )
++        val runtimeRoot = try {
++            File(
++                view.context.cacheDir,
++                "inhand/h5-runtimes/v1/files"
++            ).canonicalFile
++        } catch (error: Exception) {
++            Log.w(TAG, "Unable to resolve the Wield H5 runtime cache", error)
++            null
++        }
++        if (runtimeRoot?.isDirectory == true) {
++            builder.addPathHandler(
++                "/runtime/",
++                WebViewAssetLoader.InternalStoragePathHandler(view.context, runtimeRoot)
++            )
++        }
++        val loader = builder.build()
++        view.setInhandProjectPreviewAssetLoader(loader, host)
++        CookieManager.getInstance().setAcceptThirdPartyCookies(view, false)
++    }
+ 
+     private fun loadSource(viewWrapper: RNCWebViewWrapper, source: ReadableMap?) {
+         val view = viewWrapper.webView
++        configureInhandProjectPreview(view, source)
+         if (source != null) {
+             if (source.hasKey("html")) {
+                 val html = source.getString("html")
+@@ -494,7 +565,8 @@ class RNCWebViewManagerImpl(private val newArch: Boolean = false) {
+ 
+     fun setInjectedJavaScriptBeforeContentLoaded(viewWrapper: RNCWebViewWrapper, value: String?) {
+         val view = viewWrapper.webView
+         view.injectedJSBeforeContentLoaded = value
++        view.configureInhandDocumentStartScript(value)
+     }
+ 
+     fun setInjectedJavaScriptForMainFrameOnly(viewWrapper: RNCWebViewWrapper, value: Boolean) {
+@@ -550,6 +622,26 @@ class RNCWebViewManagerImpl(private val newArch: Boolean = false) {
+         view.settings.allowFileAccess = allowFileAccess;
+     }
+ 
++    fun setInhandAllowsFileDownloads(viewWrapper: RNCWebViewWrapper, allowed: Boolean) {
++        viewWrapper.webView.setInhandAllowsFileDownloads(allowed)
++    }
++
++    fun setInhandAllowsCamera(viewWrapper: RNCWebViewWrapper, allowed: Boolean) {
++        viewWrapper.webView.setInhandAllowsCamera(allowed)
++    }
++
++    fun setInhandAllowsMicrophone(viewWrapper: RNCWebViewWrapper, allowed: Boolean) {
++        viewWrapper.webView.setInhandAllowsMicrophone(allowed)
++    }
++
++    fun setInhandAllowsLocation(viewWrapper: RNCWebViewWrapper, allowed: Boolean) {
++        viewWrapper.webView.setInhandAllowsLocation(allowed)
++    }
++
++    fun setInhandAllowsFileSelection(viewWrapper: RNCWebViewWrapper, allowed: Boolean) {
++        viewWrapper.webView.setInhandAllowsFileSelection(allowed)
++    }
++
+     fun setAllowFileAccessFromFileURLs(viewWrapper: RNCWebViewWrapper, value: Boolean) {
+         val view = viewWrapper.webView
+         view.settings.allowFileAccessFromFileURLs = value;
+diff --git a/android/src/oldarch/com/reactnativecommunity/webview/RNCWebViewManager.java b/android/src/oldarch/com/reactnativecommunity/webview/RNCWebViewManager.java
+--- a/android/src/oldarch/com/reactnativecommunity/webview/RNCWebViewManager.java
++++ b/android/src/oldarch/com/reactnativecommunity/webview/RNCWebViewManager.java
+@@ -49,6 +49,31 @@ public class RNCWebViewManager extends ViewGroupManager<RNCWebViewWrapper> {
+         mRNCWebViewManagerImpl.setAllowFileAccess(view, value);
+     }
+ 
++    @ReactProp(name = "wieldAllowsFileDownloads", defaultBoolean = true)
++    public void setWieldAllowsFileDownloads(RNCWebViewWrapper view, boolean value) {
++        mRNCWebViewManagerImpl.setInhandAllowsFileDownloads(view, value);
++    }
++
++    @ReactProp(name = "wieldAllowsCamera", defaultBoolean = false)
++    public void setWieldAllowsCamera(RNCWebViewWrapper view, boolean value) {
++        mRNCWebViewManagerImpl.setInhandAllowsCamera(view, value);
++    }
++
++    @ReactProp(name = "wieldAllowsMicrophone", defaultBoolean = false)
++    public void setWieldAllowsMicrophone(RNCWebViewWrapper view, boolean value) {
++        mRNCWebViewManagerImpl.setInhandAllowsMicrophone(view, value);
++    }
++
++    @ReactProp(name = "wieldAllowsLocation", defaultBoolean = false)
++    public void setWieldAllowsLocation(RNCWebViewWrapper view, boolean value) {
++        mRNCWebViewManagerImpl.setInhandAllowsLocation(view, value);
++    }
++
++    @ReactProp(name = "wieldAllowsFileSelection", defaultBoolean = false)
++    public void setWieldAllowsFileSelection(RNCWebViewWrapper view, boolean value) {
++        mRNCWebViewManagerImpl.setInhandAllowsFileSelection(view, value);
++    }
++
+     @ReactProp(name = "allowFileAccessFromFileURLs")
+     public void setAllowFileAccessFromFileURLs(RNCWebViewWrapper view, boolean value) {
+         mRNCWebViewManagerImpl.setAllowFileAccessFromFileURLs(view, value);
+diff --git a/android/src/newarch/com/reactnativecommunity/webview/RNCWebViewManager.java b/android/src/newarch/com/reactnativecommunity/webview/RNCWebViewManager.java
+--- a/android/src/newarch/com/reactnativecommunity/webview/RNCWebViewManager.java
++++ b/android/src/newarch/com/reactnativecommunity/webview/RNCWebViewManager.java
+@@ -67,6 +67,36 @@ public class RNCWebViewManager extends ViewGroupManager<RNCWebViewWrapper>
+         mRNCWebViewManagerImpl.setAllowFileAccess(view, value);
+     }
+ 
++    @Override
++    @ReactProp(name = "wieldAllowsFileDownloads", defaultBoolean = true)
++    public void setWieldAllowsFileDownloads(RNCWebViewWrapper view, boolean value) {
++        mRNCWebViewManagerImpl.setInhandAllowsFileDownloads(view, value);
++    }
++
++    @Override
++    @ReactProp(name = "wieldAllowsCamera", defaultBoolean = false)
++    public void setWieldAllowsCamera(RNCWebViewWrapper view, boolean value) {
++        mRNCWebViewManagerImpl.setInhandAllowsCamera(view, value);
++    }
++
++    @Override
++    @ReactProp(name = "wieldAllowsMicrophone", defaultBoolean = false)
++    public void setWieldAllowsMicrophone(RNCWebViewWrapper view, boolean value) {
++        mRNCWebViewManagerImpl.setInhandAllowsMicrophone(view, value);
++    }
++
++    @Override
++    @ReactProp(name = "wieldAllowsLocation", defaultBoolean = false)
++    public void setWieldAllowsLocation(RNCWebViewWrapper view, boolean value) {
++        mRNCWebViewManagerImpl.setInhandAllowsLocation(view, value);
++    }
++
++    @Override
++    @ReactProp(name = "wieldAllowsFileSelection", defaultBoolean = false)
++    public void setWieldAllowsFileSelection(RNCWebViewWrapper view, boolean value) {
++        mRNCWebViewManagerImpl.setInhandAllowsFileSelection(view, value);
++    }
++
+     @Override
+     @ReactProp(name = "allowFileAccessFromFileURLs")
+     public void setAllowFileAccessFromFileURLs(RNCWebViewWrapper view, boolean value) {
+diff --git a/src/RNCWebViewNativeComponent.ts b/src/RNCWebViewNativeComponent.ts
+--- a/src/RNCWebViewNativeComponent.ts
++++ b/src/RNCWebViewNativeComponent.ts
+@@ -145,5 +145,10 @@ export interface NativeProps extends ViewProps {
+   // Android only
+   allowFileAccess?: boolean;
++  wieldAllowsFileDownloads?: WithDefault<boolean, true>;
++  wieldAllowsCamera?: WithDefault<boolean, false>;
++  wieldAllowsMicrophone?: WithDefault<boolean, false>;
++  wieldAllowsLocation?: WithDefault<boolean, false>;
++  wieldAllowsFileSelection?: WithDefault<boolean, false>;
+   allowsProtectedMedia?: boolean;
+   allowsFullscreenVideo?: boolean;
+   androidLayerType?: WithDefault<'none' | 'software' | 'hardware', 'none'>;

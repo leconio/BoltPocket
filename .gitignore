@@ -1,0 +1,115 @@
+# Dependencies and package-manager state
+node_modules/
+.pnpm-store/
+.pnp.*
+
+# Expo / React Native generated state
+.expo/
+.expo-shared/
+.metro-cache/
+web-build/
+expo-env.d.ts
+
+# Expo Continuous Native Generation output. Keep native module sources under
+# packages/*/android and packages/*/ios tracked.
+/app/android/
+/app/ios/
+
+# Build, test, and compiler output
+dist/
+build/
+coverage/
+.test-build/
+.cache/
+.turbo/
+.nx/
+*.tsbuildinfo
+.eslintcache
+
+# Native build intermediates
+.gradle/
+.kotlin/
+.cxx/
+DerivedData/
+/app/.ios-*-derived/
+Pods/
+xcuserdata/
+*.xcuserstate
+*.xcarchive/
+*.xcresult/
+*.trace/
+local.properties
+
+# Local iOS tooling state
+/idb-applications/
+/idb-dsyms/
+/idb-dylibs/
+/idb-frameworks/
+/idb-test-bundles/
+
+# Logs and temporary files
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+tmp/
+temp/
+*.tmp
+*.orig.*
+/Screenshot_*.png
+
+# Local documentation and generated deliverables
+/docs/private/
+/output/
+
+# Local operation evidence
+/artifacts/verification/
+
+# Local environment and credentials
+.env
+.env.*
+!.env.example
+!.env.*.example
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+!.dev.vars.*.example
+.envrc
+.direnv/
+*.jks
+*.keystore
+*.p8
+*.p12
+*.mobileprovision
+google-services.json
+GoogleService-Info.plist
+
+# Operating systems and editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+.devflow/
+packages/expo-bolt-runtime/ios/*.a
+packages/expo-bolt-runtime/android/src/main/jniLibs/
+packages/expo-bolt-runtime/cpp/build*/
+
+# Local models, native credentials, recordings and system vendor libraries
+*.gguf
+*.safetensors
+*.onnx
+*.apk
+*.ipa
+*.mp4
+*.pem
+*.key
+/credentials/
+/secrets/
+/models/
+/.devflow.json
+/packages/expo-ssh/android/src/main/jniLibs/

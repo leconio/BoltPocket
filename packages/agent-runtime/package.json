@@ -1,0 +1,34 @@
+{
+  "name": "@boltpocket/agent-runtime",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "react-native": "./src/index.ts",
+      "import": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "check:model-capacities": "node scripts/generate-openai-model-capacities.mjs --check",
+    "check:pi-coding-mobile-abi": "node scripts/check-pi-coding-mobile-abi.mjs",
+    "generate:model-capacities": "node scripts/generate-openai-model-capacities.mjs",
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "test": "pnpm check:model-capacities && pnpm check:pi-coding-mobile-abi && node --test src/**/*.test.ts",
+    "test:real-model": "node scripts/real-model-smoke.ts"
+  },
+  "dependencies": {
+    "@earendil-works/pi-agent-core": "0.83.0",
+    "@earendil-works/pi-ai": "0.83.0",
+    "@earendil-works/pi-coding-agent": "0.83.0",
+    "typebox": "1.3.7"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.2",
+    "eslint": "^9.39.5",
+    "eslint-config-expo": "~57.0.1",
+    "typescript": "~6.0.3"
+  }
+}

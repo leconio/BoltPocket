@@ -1,0 +1,16 @@
+# Reviewed false positives, pinned to individual file/rule/line fingerprints.
+# Static fixtures used to test delegation redaction and native browser bridge authentication.
+app/src/infrastructure/agent/pi-mobile-agent-delegation.integration.test.ts:generic-api-key:271
+app/src/infrastructure/browser/browser-native-capabilities.test.ts:generic-api-key:183
+app/src/infrastructure/browser/browser-native-capabilities.test.ts:generic-api-key:339
+app/src/infrastructure/browser/browser-webview-protocol.test.ts:generic-api-key:18
+# This is a local consent storage key name, not an authentication credential.
+app/src/infrastructure/privacy/privacy-consent-repository.ts:generic-api-key:9
+# Public upstream test payload and localhost documentation example.
+packages/expo-bolt-runtime/cpp/llama/tools/server/tests/unit/test_completion.py:generic-api-key:278
+packages/expo-bolt-runtime/cpp/llama/tools/server/README.md:curl-auth-header:1779
+# Explicit mock HTTP Basic-auth test against example.test.
+packages/project-shell/src/react-native-boundary.test.ts:curl-auth-user:84
+# xxhash SIMD variable identifiers; no credentials are involved.
+packages/expo-bolt-runtime/cpp/llama/vendor/hash/xxhash/xxhash.h:generic-api-key:4905
+packages/expo-bolt-runtime/cpp/llama/vendor/hash/xxhash/xxhash.h:generic-api-key:4954

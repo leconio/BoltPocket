@@ -1,0 +1,321 @@
+diff --git a/dist/core/tools/bash.d.ts b/dist/core/tools/bash.d.ts
+index ab40b660f56b92ba922eac2ce2a5b4b6e429df46..96188085bf500ac4b156ebd212473afd9cf78337 100644
+--- a/dist/core/tools/bash.d.ts
++++ b/dist/core/tools/bash.d.ts
+@@ -58,6 +58,10 @@ export interface BashToolOptions {
+     exposeSessionEnvironment?: boolean;
+     /** Hook to adjust command, cwd, or env before execution */
+     spawnHook?: BashSpawnHook;
++    /** Explicit base environment for capability hosts that do not expose process.env. */
++    environment?: NodeJS.ProcessEnv;
++    /** Persist truncated output to a host temp file. Disable on runtimes without a host filesystem. Default: true. */
++    persistTruncatedOutput?: boolean;
+ }
+ type BashRenderState = {
+     startedAt: number | undefined;
+diff --git a/dist/core/tools/bash.js b/dist/core/tools/bash.js
+index 8028dbfeec295312f6e6dd54ae82a186baf2acb5..0e23ceedaaf4855e68e6110028216179ab774662 100644
+--- a/dist/core/tools/bash.js
++++ b/dist/core/tools/bash.js
+@@ -111,8 +111,8 @@ export function createLocalBashOperations(options) {
+         },
+     };
+ }
+-function resolveSpawnContext(command, cwd, spawnHook, exposeSessionEnvironment, ctx) {
+-    const env = { ...getShellEnv() };
++function resolveSpawnContext(command, cwd, spawnHook, exposeSessionEnvironment, ctx, environment) {
++    const env = { ...(environment ?? getShellEnv()) };
+     delete env.PI_SESSION_ID;
+     delete env.PI_SESSION_FILE;
+     delete env.PI_PROVIDER;
+@@ -223,6 +223,8 @@ export function createBashToolDefinition(cwd, options) {
+     const commandPrefix = options?.commandPrefix;
+     const exposeSessionEnvironment = options?.exposeSessionEnvironment ?? true;
+     const spawnHook = options?.spawnHook;
++    const environment = options?.environment;
++    const persistTruncatedOutput = options?.persistTruncatedOutput ?? true;
+     return {
+         name: "bash",
+         label: "bash",
+@@ -234,8 +236,11 @@ export function createBashToolDefinition(cwd, options) {
+         parameters: bashSchema,
+         async execute(_toolCallId, { command, timeout }, signal, onUpdate, ctx) {
+             const resolvedCommand = commandPrefix ? `${commandPrefix}\n${command}` : command;
+-            const spawnContext = resolveSpawnContext(resolvedCommand, cwd, spawnHook, exposeSessionEnvironment, ctx);
+-            const output = new OutputAccumulator({ tempFilePrefix: "pi-bash" });
++            const spawnContext = resolveSpawnContext(resolvedCommand, cwd, spawnHook, exposeSessionEnvironment, ctx, environment);
++            const output = new OutputAccumulator({
++                tempFilePrefix: "pi-bash",
++                persistOutput: persistTruncatedOutput,
++            });
+             let acceptingOutput = true;
+             let updateTimer;
+             let updateDirty = false;
+@@ -245,7 +250,7 @@ export function createBashToolDefinition(cwd, options) {
+                     return;
+                 updateDirty = false;
+                 lastUpdateAt = Date.now();
+-                const snapshot = output.snapshot({ persistIfTruncated: true });
++                const snapshot = output.snapshot({ persistIfTruncated: persistTruncatedOutput });
+                 onUpdate({
+                     content: [{ type: "text", text: snapshot.content || "" }],
+                     details: {
+@@ -289,7 +294,7 @@ export function createBashToolDefinition(cwd, options) {
+                 output.finish();
+                 clearUpdateTimer();
+                 emitOutputUpdate();
+-                const snapshot = output.snapshot({ persistIfTruncated: true });
++                const snapshot = output.snapshot({ persistIfTruncated: persistTruncatedOutput });
+                 await output.closeTempFile();
+                 return snapshot;
+             };
+@@ -301,15 +306,18 @@ export function createBashToolDefinition(cwd, options) {
+                     details = { truncation, fullOutputPath: snapshot.fullOutputPath };
+                     const startLine = truncation.totalLines - truncation.outputLines + 1;
+                     const endLine = truncation.totalLines;
++                    const fullOutputNotice = snapshot.fullOutputPath
++                        ? ` Full output: ${snapshot.fullOutputPath}`
++                        : "";
+                     if (truncation.lastLinePartial) {
+                         const lastLineSize = formatSize(output.getLastLineBytes());
+-                        text += `\n\n[Showing last ${formatSize(truncation.outputBytes)} of line ${endLine} (line is ${lastLineSize}). Full output: ${snapshot.fullOutputPath}]`;
++                        text += `\n\n[Showing last ${formatSize(truncation.outputBytes)} of line ${endLine} (line is ${lastLineSize}).${fullOutputNotice}]`;
+                     }
+                     else if (truncation.truncatedBy === "lines") {
+-                        text += `\n\n[Showing lines ${startLine}-${endLine} of ${truncation.totalLines}. Full output: ${snapshot.fullOutputPath}]`;
++                        text += `\n\n[Showing lines ${startLine}-${endLine} of ${truncation.totalLines}.${fullOutputNotice}]`;
+                     }
+                     else {
+-                        text += `\n\n[Showing lines ${startLine}-${endLine} of ${truncation.totalLines} (${formatSize(DEFAULT_MAX_BYTES)} limit). Full output: ${snapshot.fullOutputPath}]`;
++                        text += `\n\n[Showing lines ${startLine}-${endLine} of ${truncation.totalLines} (${formatSize(DEFAULT_MAX_BYTES)} limit).${fullOutputNotice}]`;
+                     }
+                 }
+                 return { text, details };
+diff --git a/dist/core/tools/grep.d.ts b/dist/core/tools/grep.d.ts
+index fd073cd9babb37f3d00f0131bc460c39b84c5a1c..db797ef36c4eefbe4b5c7a23e220c49aa9d5a5d9 100644
+--- a/dist/core/tools/grep.d.ts
++++ b/dist/core/tools/grep.d.ts
+@@ -26,6 +26,23 @@ export interface GrepOperations {
+     isDirectory: (absolutePath: string) => Promise<boolean> | boolean;
+     /** Read file contents for context lines */
+     readFile: (absolutePath: string) => Promise<string> | string;
++    /** Search backend for runtimes that cannot spawn ripgrep. Formatting and truncation remain owned by the upstream tool. */
++    search?: (input: {
++        pattern: string;
++        path: string;
++        glob?: string;
++        ignoreCase: boolean;
++        literal: boolean;
++        limit: number;
++        signal?: AbortSignal;
++    }) => Promise<{
++        matches: Array<{
++            filePath: string;
++            lineNumber: number;
++            lineText?: string;
++        }>;
++        limitReached?: boolean;
++    }>;
+ }
+ export interface GrepToolOptions {
+     /** Custom operations for grep. Default: local filesystem plus ripgrep */
+diff --git a/dist/core/tools/grep.js b/dist/core/tools/grep.js
+index a8d520b025e14cff479e55c34e8745b31c427bdd..b3b6e306780a21be61361d8a11c762f7c868aafd 100644
+--- a/dist/core/tools/grep.js
++++ b/dist/core/tools/grep.js
+@@ -92,11 +92,6 @@ export function createGrepToolDefinition(cwd, options) {
+                 };
+                 (async () => {
+                     try {
+-                        const rgPath = await ensureTool("rg", true);
+-                        if (!rgPath) {
+-                            settle(() => reject(new Error("ripgrep (rg) is not available and could not be downloaded")));
+-                            return;
+-                        }
+                         const searchPath = resolveToCwd(searchDir || ".", cwd);
+                         const ops = customOps ?? defaultGrepOperations;
+                         let isDirectory;
+@@ -133,6 +128,86 @@ export function createGrepToolDefinition(cwd, options) {
+                             }
+                             return lines;
+                         };
++                        if (ops.search) {
++                            const searchResult = await ops.search({
++                                pattern,
++                                path: searchPath,
++                                glob,
++                                ignoreCase: ignoreCase ?? false,
++                                literal: literal ?? false,
++                                limit: effectiveLimit,
++                                signal,
++                            });
++                            if (signal?.aborted) {
++                                settle(() => reject(new Error("Operation aborted")));
++                                return;
++                            }
++                            const matches = searchResult.matches.slice(0, effectiveLimit);
++                            if (matches.length === 0) {
++                                settle(() => resolve({ content: [{ type: "text", text: "No matches found" }], details: undefined }));
++                                return;
++                            }
++                            let linesTruncated = false;
++                            const outputLines = [];
++                            for (const match of matches) {
++                                const relativePath = formatPath(match.filePath);
++                                if (contextValue === 0 && match.lineText !== undefined) {
++                                    const sanitized = match.lineText
++                                        .replace(/\r\n/g, "\n")
++                                        .replace(/\r/g, "")
++                                        .replace(/\n$/, "");
++                                    const { text: truncatedText, wasTruncated } = truncateLine(sanitized);
++                                    if (wasTruncated)
++                                        linesTruncated = true;
++                                    outputLines.push(`${relativePath}:${match.lineNumber}: ${truncatedText}`);
++                                    continue;
++                                }
++                                const lines = await getFileLines(match.filePath);
++                                if (!lines.length) {
++                                    outputLines.push(`${relativePath}:${match.lineNumber}: (unable to read file)`);
++                                    continue;
++                                }
++                                const start = contextValue > 0 ? Math.max(1, match.lineNumber - contextValue) : match.lineNumber;
++                                const end = contextValue > 0 ? Math.min(lines.length, match.lineNumber + contextValue) : match.lineNumber;
++                                for (let current = start; current <= end; current++) {
++                                    const sanitized = (lines[current - 1] ?? "").replace(/\r/g, "");
++                                    const { text: truncatedText, wasTruncated } = truncateLine(sanitized);
++                                    if (wasTruncated)
++                                        linesTruncated = true;
++                                    outputLines.push(current === match.lineNumber
++                                        ? `${relativePath}:${current}: ${truncatedText}`
++                                        : `${relativePath}-${current}- ${truncatedText}`);
++                                }
++                            }
++                            const truncation = truncateHead(outputLines.join("\n"), { maxLines: Number.MAX_SAFE_INTEGER });
++                            let output = truncation.content;
++                            const details = {};
++                            const notices = [];
++                            if (searchResult.limitReached) {
++                                notices.push(`${effectiveLimit} matches limit reached. Use limit=${effectiveLimit * 2} for more, or refine pattern`);
++                                details.matchLimitReached = effectiveLimit;
++                            }
++                            if (truncation.truncated) {
++                                notices.push(`${formatSize(DEFAULT_MAX_BYTES)} limit reached`);
++                                details.truncation = truncation;
++                            }
++                            if (linesTruncated) {
++                                notices.push(`Some lines truncated to ${GREP_MAX_LINE_LENGTH} chars. Use read tool to see full lines`);
++                                details.linesTruncated = true;
++                            }
++                            if (notices.length > 0)
++                                output += `\n\n[${notices.join(". ")}]`;
++                            settle(() => resolve({
++                                content: [{ type: "text", text: output }],
++                                details: Object.keys(details).length > 0 ? details : undefined,
++                            }));
++                            return;
++                        }
++                        const rgPath = await ensureTool("rg", true);
++                        if (!rgPath) {
++                            settle(() => reject(new Error("ripgrep (rg) is not available and could not be downloaded")));
++                            return;
++                        }
+                         const args = ["--json", "--line-number", "--color=never", "--hidden"];
+                         if (ignoreCase)
+                             args.push("--ignore-case");
+diff --git a/dist/core/tools/output-accumulator.d.ts b/dist/core/tools/output-accumulator.d.ts
+index fbd581f6067c98771dc6a29272a5bab2b2653dcd..6f0eb0a16a77c0219aa3dd8b91bbddf416456d6a 100644
+--- a/dist/core/tools/output-accumulator.d.ts
++++ b/dist/core/tools/output-accumulator.d.ts
+@@ -3,6 +3,7 @@ export interface OutputAccumulatorOptions {
+     maxLines?: number;
+     maxBytes?: number;
+     tempFilePrefix?: string;
++    persistOutput?: boolean;
+ }
+ export interface OutputSnapshot {
+     content: string;
+@@ -21,6 +22,7 @@ export declare class OutputAccumulator {
+     private readonly maxBytes;
+     private readonly maxRollingBytes;
+     private readonly tempFilePrefix;
++    private readonly persistOutput;
+     private readonly decoder;
+     private rawChunks;
+     private tailText;
+diff --git a/dist/core/tools/output-accumulator.js b/dist/core/tools/output-accumulator.js
+index 72416680b6307108ffeace36e45fa7076cc8b7e5..641f7029784e632520b93c7f765dd53e3cac573f 100644
+--- a/dist/core/tools/output-accumulator.js
++++ b/dist/core/tools/output-accumulator.js
+@@ -22,6 +22,7 @@ export class OutputAccumulator {
+     maxBytes;
+     maxRollingBytes;
+     tempFilePrefix;
++    persistOutput;
+     decoder = new TextDecoder();
+     rawChunks = [];
+     tailText = "";
+@@ -41,6 +42,7 @@ export class OutputAccumulator {
+         this.maxBytes = options.maxBytes ?? DEFAULT_MAX_BYTES;
+         this.maxRollingBytes = Math.max(this.maxBytes * 2, 1);
+         this.tempFilePrefix = options.tempFilePrefix ?? "pi-output";
++        this.persistOutput = options.persistOutput ?? true;
+     }
+     append(data) {
+         if (this.finished) {
+@@ -48,11 +50,11 @@ export class OutputAccumulator {
+         }
+         this.totalRawBytes += data.length;
+         this.appendDecodedText(this.decoder.decode(data, { stream: true }));
+-        if (this.tempFileStream || this.shouldUseTempFile()) {
++        if (this.persistOutput && (this.tempFileStream || this.shouldUseTempFile())) {
+             this.ensureTempFile();
+             this.tempFileStream?.write(data);
+         }
+-        else if (data.length > 0) {
++        else if (this.persistOutput && data.length > 0) {
+             this.rawChunks.push(data);
+         }
+     }
+@@ -62,7 +64,7 @@ export class OutputAccumulator {
+         }
+         this.finished = true;
+         this.appendDecodedText(this.decoder.decode());
+-        if (this.shouldUseTempFile()) {
++        if (this.persistOutput && this.shouldUseTempFile()) {
+             this.ensureTempFile();
+         }
+     }
+@@ -84,7 +86,7 @@ export class OutputAccumulator {
+             maxLines: this.maxLines,
+             maxBytes: this.maxBytes,
+         };
+-        if (options.persistIfTruncated && truncation.truncated) {
++        if (this.persistOutput && options.persistIfTruncated && truncation.truncated) {
+             this.ensureTempFile();
+         }
+         return {
+@@ -170,6 +172,9 @@ export class OutputAccumulator {
+         return (this.totalRawBytes > this.maxBytes || this.totalDecodedBytes > this.maxBytes || this.totalLines > this.maxLines);
+     }
+     ensureTempFile() {
++        if (!this.persistOutput) {
++            return;
++        }
+         if (this.tempFilePath) {
+             return;
+         }
+diff --git a/package.json b/package.json
+index c7d8c8b41dbeaf4a551d479b713bb03d7bdf3422..ca2268ddcce8e47c9c6570d2b38b30dc22cd6446 100644
+--- a/package.json
++++ b/package.json
+@@ -18,6 +18,10 @@
+ 		},
+ 		"./rpc-entry": {
+ 			"import": "./dist/rpc-entry.js"
++		},
++		"./core/tools": {
++			"types": "./dist/core/tools/index.d.ts",
++			"import": "./dist/core/tools/index.js"
+ 		}
+ 	},
+ 	"files": [

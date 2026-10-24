@@ -1,0 +1,3 @@
+# Preserve upstream and generated patch formatting exactly.
+packages/expo-quickjs/cpp/quickjs/** -whitespace
+patches/*.patch -whitespace

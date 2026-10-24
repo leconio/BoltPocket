@@ -1,0 +1,6 @@
+interface:
+  display_name: "生成 H5 项目"
+  short_description: "按场景生成并安全预览移动端 H5 应用、图表与小游戏"
+  default_prompt: "Use $build-h5 to build ordinary apps with Preact, Hooks, and HTM, use Phaser for games, reserve Vanilla for fallback, create a responsive H5 manifest and files, then preview it."
+policy:
+  allow_implicit_invocation: true

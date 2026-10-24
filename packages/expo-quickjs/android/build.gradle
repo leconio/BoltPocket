@@ -1,0 +1,33 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'dev.boltpocket.app'
+version = '0.1.0'
+
+android {
+  namespace 'dev.boltpocket.app.quickjs'
+
+  if (rootProject.hasProperty('ndkVersion')) {
+    ndkVersion rootProject.ext.ndkVersion
+  }
+
+  defaultConfig {
+    versionCode 1
+    versionName '0.1.0'
+
+    externalNativeBuild {
+      cmake {
+        arguments '-DANDROID_STL=c++_shared'
+        cppFlags '-std=c++17'
+      }
+    }
+  }
+
+  externalNativeBuild {
+    cmake {
+      path 'CMakeLists.txt'
+    }
+  }
+}

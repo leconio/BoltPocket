@@ -1,0 +1,14 @@
+{
+  "name": "@boltpocket/expo-bolt-runtime",
+  "version": "0.1.0",
+  "private": true,
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": {
+    "expo-modules-core": "57.0.10"
+  },
+  "peerDependencies": {
+    "expo": "*",
+    "react-native": "*"
+  }
+}

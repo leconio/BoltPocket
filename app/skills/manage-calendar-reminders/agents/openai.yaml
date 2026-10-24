@@ -1,0 +1,6 @@
+interface:
+  display_name: "管理日历与提醒"
+  short_description: "原生读写日历与 iOS 提醒，并保留 Patch 和恢复操作"
+  default_prompt: "使用 $manage-calendar-reminders 查看或修改我的日历和提醒事项。"
+policy:
+  allow_implicit_invocation: true

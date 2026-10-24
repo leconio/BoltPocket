@@ -1,0 +1,6 @@
+interface:
+  display_name: "操作 SSH"
+  short_description: "安全执行 SSH 运维，并防止端口或防火墙变更导致失联"
+  default_prompt: "Use $operate-ssh to authenticate with an authorized project password-book record, perform the requested remote operation, and prevent lockout during risky SSH or network changes."
+policy:
+  allow_implicit_invocation: true
