@@ -111,5 +111,4 @@ packages/expo-bolt-runtime/cpp/build*/
 /credentials/
 /secrets/
 /models/
-/.devflow.json
 /packages/expo-ssh/android/src/main/jniLibs/

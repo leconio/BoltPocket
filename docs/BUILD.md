@@ -43,6 +43,8 @@ The native sources are already vendored and patched. Do not replace the llama.cp
 
 The generated release build uses the local test-signing setup. Supply and protect your own release signing before any production distribution. No signing credentials are supplied. The generated Android/iOS folders and compiled libraries are ignored by Git; native module source remains tracked.
 
+The optional `.devflow.json` records the same local Android steps for the author's project-dev runner. Its `boltpocket-opencl-android` preset is a logical preset name: configure that preset on your own host with tool paths, `JAVA_HOME`, `ANDROID_HOME`, `OPENCL_INCLUDE_DIR` and `OPENCL_LIBRARY`. Those machine paths and the private linking library are not part of the repository. Without project-dev, use the manual commands above.
+
 Expo Go cannot run the custom inference/SSH/QuickJS modules. For development, first compile a native development build; the root `pnpm start` command starts Metro for an existing development client, not a native-module build.
 
 ## Import and fixtures
