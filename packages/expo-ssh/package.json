@@ -1,0 +1,36 @@
+{
+  "name": "@boltpocket/expo-ssh",
+  "version": "0.1.0",
+  "description": "Restricted SSH/SFTP Expo native module for BoltPocket",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "react-native": "./src/index.ts",
+      "import": "./src/index.ts"
+    },
+    "./app.plugin.cjs": "./app.plugin.cjs"
+  },
+  "scripts": {
+    "lint": "eslint src",
+    "test": "bash scripts/test-android-libssh2.sh",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "expo-modules-core": "57.0.10"
+  },
+  "peerDependencies": {
+    "expo": "*",
+    "react-native": "*"
+  },
+  "devDependencies": {
+    "eslint": "^9.39.5",
+    "eslint-config-expo": "~57.0.1",
+    "expo": "~57.0.12",
+    "react-native": "0.86.2",
+    "typescript": "~6.0.3"
+  }
+}

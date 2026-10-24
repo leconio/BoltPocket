@@ -1,0 +1,30 @@
+{
+  "name": "boltpocket",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@11.13.0",
+  "engines": {
+    "node": ">=24.18.0 <25",
+    "pnpm": ">=11.13.0 <12"
+  },
+  "scripts": {
+    "start": "pnpm --filter @boltpocket/mobile start",
+    "typecheck": "pnpm --filter @boltpocket/mobile typecheck",
+    "test": "pnpm --filter @boltpocket/agent-runtime test && pnpm --filter @boltpocket/mobile test:local",
+    "check": "pnpm typecheck && pnpm test && python3 tools/bolt/test_prefix_cache.py",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "prettier": "^3.6.2"
+  },
+  "description": "Experimental mobile agent with on-device llama.cpp, Pi tools and persistent prefix caching.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/leconio/BoltPocket.git"
+  },
+  "homepage": "https://github.com/leconio/BoltPocket",
+  "bugs": {
+    "url": "https://github.com/leconio/BoltPocket/issues"
+  }
+}

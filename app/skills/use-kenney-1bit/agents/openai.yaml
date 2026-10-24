@@ -1,0 +1,6 @@
+interface:
+  display_name: "使用 Kenney 1-Bit Pack"
+  short_description: "按精确切片规则使用离线 16px 像素精灵表"
+  default_prompt: "Use $use-kenney-1bit to inspect exact sprite sheets, declare the pack, verify frame slicing, and never invent per-frame semantics."
+policy:
+  allow_implicit_invocation: true

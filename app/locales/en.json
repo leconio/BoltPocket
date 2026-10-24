@@ -1,0 +1,19 @@
+{
+  "ios": {
+    "CFBundleDisplayName": "BoltPocket",
+    "NSLocalNetworkUsageDescription": "BoltPocket accesses your local network when you use local models, MCP, SSH, websites, or project capabilities that you configured.",
+    "NSCameraUsageDescription": "Allow authorized websites and project H5 apps to use the camera, or take photos to attach to conversations.",
+    "NSCalendarsUsageDescription": "Allow BoltPocket to read and change calendars when you authorize an Agent calendar action.",
+    "NSCalendarsFullAccessUsageDescription": "Allow BoltPocket to read and change calendars when you authorize an Agent calendar action.",
+    "NSMicrophoneUsageDescription": "Allow authorized websites and project H5 apps to use the microphone.",
+    "NSLocationAlwaysAndWhenInUseUsageDescription": "BoltPocket includes location support for authorized websites and project H5 apps. It does not request background location; access is limited to while you use the app.",
+    "NSLocationWhenInUseUsageDescription": "Allow authorized websites and project H5 apps to access your location while in use.",
+    "NSMotionUsageDescription": "Allow BoltPocket to read device motion during an Agent sensor request you authorize, or in an authorized website or project H5 app.",
+    "NSRemindersUsageDescription": "Allow BoltPocket to read and change reminders when you authorize an Agent reminder action.",
+    "NSRemindersFullAccessUsageDescription": "Allow BoltPocket to read and change reminders when you authorize an Agent reminder action.",
+    "NSPhotoLibraryUsageDescription": "Allow photo selection for website uploads or conversation attachments."
+  },
+  "android": {
+    "app_name": "BoltPocket"
+  }
+}

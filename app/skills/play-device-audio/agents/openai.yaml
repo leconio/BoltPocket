@@ -1,0 +1,6 @@
+interface:
+  display_name: "播放设备音频"
+  short_description: "用系统媒体通知和锁屏控制播放音频"
+  default_prompt: "使用 $play-device-audio 播放并控制音频。"
+policy:
+  allow_implicit_invocation: true

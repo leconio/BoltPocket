@@ -1,0 +1,144 @@
+{
+  "date": "2026-10-24",
+  "device": "Galaxy S25 SM-S931U / Android 16 / Adreno 830",
+  "tested_model": {
+    "file": "NVIDIA-Nemotron-3.5-Bolt-E4B-UD-Q4_K_XL.gguf",
+    "bytes": 4758125760,
+    "sha256": "b19f200ff71cc33668ad935a814ad466e7e16428fc260f1d2fbfdd49eab66a38",
+    "hf_revision": "2104306495395ad940bc1365381a09c59a1a1600"
+  },
+  "cpu_8k": {
+    "runtime": {
+      "framework": "React Native / Expo + reused Pi 0.83.0 + native llama.cpp",
+      "llama_revision": "1a24df163920a4744a95373d178d790b72a9bb2f",
+      "backend": "CPU",
+      "threads": 6,
+      "context_tokens": 8192,
+      "batch": 256,
+      "ubatch": 64,
+      "max_output_tokens": 256,
+      "temperature": 1.0,
+      "top_p": 0.95,
+      "seed": 42,
+      "thinking_parameter": false
+    },
+    "benchmark": {
+      "n": 3,
+      "exact_prefix_cache": true,
+      "decode_median_tok_s": 5.050197235705551,
+      "decode_range_tok_s": [
+        4.991715388515251,
+        5.063040244434295
+      ],
+      "submit_to_first_text_event_ms": [
+        2845.1910920143127,
+        421.0711979866028,
+        461.40015602111816
+      ],
+      "first_text_event_median_ms": 461.40015602111816,
+      "loaded_ms": 6320.506091,
+      "first_request_no_prefix_cache_native_ttft_ms": 332272.623415,
+      "first_request_no_prefix_cache_submit_to_text_event_ms": 338754.93737000227,
+      "peak_sampled_total_pss_mib": 7405.2080078125,
+      "peak_sampled_total_rss_mib": 7275.84375,
+      "native_generation_peak_rss_mib": 7224.98046875,
+      "native_rss_sample_period_ms": 20,
+      "external_meminfo_median_period_s": 1.625
+    },
+    "prompt_language": "Chinese"
+  },
+  "gpu_8k": {
+    "parameters": {
+      "context": 8192,
+      "batch": 256,
+      "ubatch": 256,
+      "kv": "F16",
+      "flash_attention": true,
+      "threads": 6,
+      "temperature": 1,
+      "top_p": 0.95,
+      "seed": 42,
+      "thinking": false,
+      "output_limit": 256
+    },
+    "summary": {
+      "decode_tok_s_median": 7.096354185919414,
+      "decode_tok_s_range": [
+        7.05189161521891,
+        7.173793347445621
+      ],
+      "warm_native_ttft_s_median": 0.220291614,
+      "warm_submit_to_first_js_text_s_median": 0.369469269990921,
+      "warm_native_total_s_median": 8.538340882,
+      "cold_first_js_text_s": 96.34136527603864,
+      "cold_model_load_s": 17.014536139,
+      "cold_prompt_tokens": 5072,
+      "cold_native_prefill_s": 79.071662366,
+      "process_peak_android_total_pss_gib": 6.675724029541016,
+      "process_peak_android_total_rss_gib": 6.595878601074219,
+      "conversation_peak_android_total_pss_gib": 5.060352325439453,
+      "conversation_native_ttft_s_range": [
+        0.810284479,
+        1.2746446869999999
+      ],
+      "conversation_submit_to_first_js_text_s_range": [
+        0.950581405043602,
+        1.4254798429608344
+      ],
+      "conversation_native_total_s_range": [
+        9.209555934,
+        12.607189005
+      ]
+    },
+    "prompt_language": "English"
+  },
+  "persistent_16k": {
+    "fixed_prefix_tokens": 7417,
+    "cache_file_bytes": 425528770,
+    "cache_file_mib": 405.8158588409424,
+    "first_native_ttft_s": 102.31845574200001,
+    "restart_same_prompt_native_ttft_s": 8.588037028,
+    "restart_model_load_s": 18.106951763,
+    "restart_restore_s": 3.802069738,
+    "weather_first_native_ttft_s": 3.5405597899999997,
+    "cache_tokens_after_restart": 7417,
+    "new_tokens_after_restart": 10
+  },
+  "long_task_16k": {
+    "context": 16384,
+    "model_calls": 12,
+    "output_tokens_total": 455,
+    "first_call_fixed_prefix_tokens": 7417,
+    "first_call_new_prefill_tokens": 312,
+    "first_native_ttft_s": 11.629045725,
+    "model_load_s": 16.693773067,
+    "per_call_decode_median_tok_s": 6.578668734281765,
+    "per_call_decode_range_tok_s": [
+      5.583044582345346,
+      8.614816974611793
+    ],
+    "sampled_peak_android_total_pss_gib": 6.667139053344727,
+    "sampled_peak_android_total_rss_gib": 6.569057464599609,
+    "last_done_android_pss_snapshot_gib": 5.84957218170166,
+    "whole_agent_ui_processed_s": 142
+  },
+  "content_acceptance": {
+    "budget_rows": 4,
+    "total_hkd": 300,
+    "budget_within_cap": true,
+    "plan_contains_start_time": true,
+    "plan_contains_central_waterfront": true,
+    "plan_contains_named_indoor_option": true,
+    "plan_contains_28C": true,
+    "plan_contains_exact_observation_timestamp": false,
+    "plan_precisely_distinguishes_hk_warning_from_storm_news": false,
+    "scope": "Actual applied v2 file content extracted from review UI; no manual content correction."
+  },
+  "notes": [
+    "Historical artifact only; current upstream GGUF differs.",
+    "CPU/GPU samples are not matched prompts or microbatches.",
+    "Native TTFT excludes model initialization.",
+    "JS first text is not screen paint.",
+    "PSS includes graphics; observed peaks are sampled."
+  ]
+}

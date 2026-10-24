@@ -1,0 +1,4 @@
+interface:
+  display_name: "Publish Skill"
+  short_description: "Review and publish a project Skill safely"
+  default_prompt: "Use $publish-skill to review and publish my project Skill."

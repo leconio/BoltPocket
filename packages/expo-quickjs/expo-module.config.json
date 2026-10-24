@@ -1,0 +1,11 @@
+{
+  "platforms": ["apple", "android"],
+  "apple": {
+    "modules": ["BoltPocketQuickJsModule"],
+    "podspecPath": "BoltPocketQuickJs.podspec",
+    "swiftModuleName": "BoltPocketQuickJs"
+  },
+  "android": {
+    "modules": ["dev.boltpocket.app.quickjs.BoltPocketQuickJsModule"]
+  }
+}

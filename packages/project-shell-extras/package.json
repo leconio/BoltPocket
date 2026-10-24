@@ -1,0 +1,44 @@
+{
+  "name": "@boltpocket/project-shell-extras",
+  "version": "0.1.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "react-native": "./src/index.ts",
+      "import": "./src/index.ts"
+    },
+    "./zip": {
+      "types": "./src/zip.ts",
+      "react-native": "./src/zip.ts",
+      "import": "./src/zip.ts"
+    }
+  },
+  "scripts": {
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test src/**/*.test.ts"
+  },
+  "dependencies": {
+    "fast-xml-parser": "5.10.1",
+    "fflate": "0.8.3",
+    "ini": "6.0.0",
+    "papaparse": "5.5.4",
+    "smol-toml": "1.7.1",
+    "yaml": "2.9.0"
+  },
+  "peerDependencies": {
+    "just-bash": "3.2.0"
+  },
+  "devDependencies": {
+    "@types/ini": "^4.1.1",
+    "@types/node": "^26.1.2",
+    "@types/papaparse": "^5.5.2",
+    "eslint": "^9.39.5",
+    "eslint-config-expo": "~57.0.1",
+    "just-bash": "3.2.0",
+    "typescript": "~6.0.3"
+  }
+}

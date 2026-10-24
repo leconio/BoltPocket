@@ -1,0 +1,9 @@
+Build an English HK outing pack in this project. Complete these separate tool steps, waiting for each result. Keep calls short.
+1 Run pwd and ls.
+2 Run curl -s 'https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=rhrread&lang=en' and read its raw JSON; do not use jq.
+3 Separately curl -s 'https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=warnsum&lang=en'.
+4 Separately curl -s 'https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=flw&lang=en'.
+5 Use write to create cached-demo-budget.csv with header item,cost_hkd and four rows: transport,80; lunch,120; drinks,40; reserve,60. Use real newlines. Costs are assumptions.
+6 Read that CSV and calculate the total with awk. Check the HKD300 cap.
+7 Use write to create cached-demo-plan.md under 60 words: a four-hour Central/harbour outing, indoor rain option, live warning precautions and observation time.
+8 Read both files to verify the budget and both weather options. Finish under 50 words with the paths. Complete all steps. Local tools only; no SSH or publishing.

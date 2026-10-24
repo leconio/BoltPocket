@@ -1,0 +1,289 @@
+export const zhCNRuntimeMessages = {
+  "runtime.agent.action.analyzeMedia": "识别图片",
+  "runtime.agent.action.browser": "浏览网页",
+  "runtime.agent.action.credentialRequest": "申请读取密码本",
+  "runtime.agent.action.edit": "编辑",
+  "runtime.agent.action.editFile": "编辑项目文件",
+  "runtime.agent.action.find": "查找",
+  "runtime.agent.action.findFiles": "查找项目文件",
+  "runtime.agent.action.generateImage": "生成图片",
+  "runtime.agent.action.generateVideo": "生成视频",
+  "runtime.agent.action.grep": "搜索文件内容",
+  "runtime.agent.action.javascript": "运行计算",
+  "runtime.agent.action.list": "列出",
+  "runtime.agent.action.listDirectory": "列出项目目录",
+  "runtime.agent.action.mcp": "调用 MCP",
+  "runtime.agent.action.projectContext": "读取项目上下文",
+  "runtime.agent.action.read": "读取",
+  "runtime.agent.action.readFile": "读取项目文件",
+  "runtime.agent.action.readSkill": "读取 Skill",
+  "runtime.agent.action.readProjectSkill": "读取项目 Skill",
+  "runtime.agent.action.resourceCatalog": "查找项目内置资源",
+  "runtime.agent.action.resourceCopy": "复制资源到项目",
+  "runtime.agent.action.run": "运行",
+  "runtime.agent.action.search": "搜索",
+  "runtime.agent.action.skillMarketPublish": "发布 Skill 到市场",
+  "runtime.agent.action.skillMarketReview": "审核待发布 Skill",
+  "runtime.agent.action.sshConnect": "从密码本连接 SSH",
+  "runtime.agent.action.subagent": "协作 Agent",
+  "runtime.agent.action.thirdPartyCapabilityAssess": "体检第三方 Skill 或 MCP",
+  "runtime.agent.action.thirdPartyCapabilityInstall": "安装第三方 Skill 或 MCP",
+  "runtime.agent.action.vaultList": "查看项目密码本授权",
+  "runtime.agent.action.previewProject": "预览项目 H5",
+  "runtime.agent.action.write": "写入",
+  "runtime.agent.action.writeFile": "写入项目文件",
+  "runtime.agent.browser.back": "网页后退",
+  "runtime.agent.browser.closeTemporary": "关闭临时网页",
+  "runtime.agent.browser.click": "点击网页控件",
+  "runtime.agent.browser.followLink": "跟随网页链接",
+  "runtime.agent.browser.findText": "查找网页文字",
+  "runtime.agent.browser.forward": "网页前进",
+  "runtime.agent.browser.highlight": "定位网页控件",
+  "runtime.agent.browser.navigate": "打开网页",
+  "runtime.agent.browser.openTemporary": "打开临时网页",
+  "runtime.agent.browser.readText": "继续读取网页",
+  "runtime.agent.browser.reload": "刷新网页",
+  "runtime.agent.browser.scroll": "滚动网页",
+  "runtime.agent.browser.scrollDown": "向下",
+  "runtime.agent.browser.scrollUp": "向上",
+  "runtime.agent.browser.snapshot": "读取当前网页",
+  "runtime.agent.browser.status": "检查浏览器状态",
+  "runtime.agent.browser.type": "输入网页文字",
+  "runtime.agent.browser.waitForText": "等待网页文字",
+  "runtime.agent.commandUnavailable": "命令不可用",
+  "runtime.agent.change.copy": "复制资源 {path}",
+  "runtime.agent.change.create": "新增文件 {path}",
+  "runtime.agent.change.external.googleDocsTitle": "新建 Google 文档",
+  "runtime.agent.change.external.googleSheetsTitle": "新建 Google 表格",
+  "runtime.agent.change.external.googleSlidesTitle": "新建 Google 幻灯片",
+  "runtime.agent.change.external.notionTitle": "新建 Notion 页面",
+  "runtime.agent.change.externalSummary": "新建文档 {title}",
+  "runtime.agent.change.modify": "内容修改 {path}",
+  "runtime.agent.change.proposalSummary": "内容修改（{count} 个资源）",
+  "runtime.agent.collaboration.failedRemaining":
+    "协作 Agent · 1 个失败，{count} 个仍在运行",
+  "runtime.agent.collaboration.noSummary": "协作任务没有返回摘要。",
+  "runtime.agent.collaboration.parallel": "协作 Agent · {count} 个并行",
+  "runtime.agent.collaboration.remaining": "协作 Agent · {count} 个仍在运行",
+  "runtime.agent.collaboration.taskFailed": "协作任务运行失败。",
+  "runtime.agent.completion.moreFiles": "- 另有 {count} 个文件",
+  "runtime.agent.completion.proposalHeader": "已生成 {count} 个文件修改：",
+  "runtime.agent.completion.proposalReview":
+    "修改已自动应用，可从本条回复的修改卡片审查和撤销。",
+  "runtime.agent.completion.sensitive":
+    "密码本读取已完成；敏感内容未显示，也未传入其他工具。",
+  "runtime.agent.completion.toolOnly":
+    "操作已经结束，但模型没有返回最终说明。完整执行记录已保留在上方。",
+  "runtime.agent.context.compactionCompleted": "对话上下文已整理",
+  "runtime.agent.context.compactionFailed": "对话上下文整理失败",
+  "runtime.agent.context.compactionStarted": "正在整理对话上下文",
+  "runtime.agent.context.overflowCompleted": "上下文已恢复",
+  "runtime.agent.context.overflowFailed": "上下文恢复失败",
+  "runtime.agent.context.overflowStarted": "上下文过长，正在整理后重试",
+  "runtime.agent.contextReference.connectionDetail": "仅使用当前项目授权范围",
+  "runtime.agent.contextReference.connectionLabel": "连接器 {count}",
+  "runtime.agent.contextReference.memoryLabel": "记忆 {count}",
+  "runtime.agent.contextReference.memorySeparator": "；",
+  "runtime.agent.contextReference.skillLabel": "Skills {count}",
+  "runtime.agent.contextReference.skillSeparator": "、",
+  "runtime.agent.detail": "{action}：{details}",
+  "runtime.agent.durationSeconds": "{count} 秒",
+  "runtime.agent.editCount": "{count} 处",
+  "runtime.agent.error.invalidResponse": "模型没有返回有效回答，请重试。",
+  "runtime.agent.error.runFailed": "模型运行失败，请稍后重试。",
+  "runtime.agent.line.first": "前 {count} 行",
+  "runtime.agent.line.from": "从第 {start} 行",
+  "runtime.agent.line.range": "第 {start}–{end} 行",
+  "runtime.agent.retry.attemptStarted": "{subject}正在重试",
+  "runtime.agent.retry.ended": "{subject}重试已结束",
+  "runtime.agent.retry.failed": "{subject}重试失败",
+  "runtime.agent.retry.scheduled": "{subject}失败，准备重试",
+  "runtime.agent.retry.scheduledProgress":
+    "{subject}失败，准备重试（{attempt}/{maximum}）",
+  "runtime.agent.retry.succeeded": "{subject}重试成功",
+  "runtime.agent.retry.subject.branch": "分支摘要",
+  "runtime.agent.retry.subject.compaction": "上下文整理",
+  "runtime.agent.retry.subject.turn": "模型请求",
+  "runtime.agent.status.connected": "模型已就绪",
+  "runtime.agent.status.thinking": "正在思考",
+  "runtime.agent.system.replyLanguage":
+    "Reply in Simplified Chinese unless the user asks otherwise.",
+  "runtime.agent.subagent.planner": "规划",
+  "runtime.agent.subagent.reviewer": "审查",
+  "runtime.agent.subagent.scout": "探索",
+  "runtime.background.activeMultiple": "{count} 个对话正在运行",
+  "runtime.background.activeSingle": "1 个对话正在运行",
+  "runtime.background.title": "BoltPocket正在处理任务",
+  "runtime.messaging.attachment.defaultPrompt": "请分析我附加的内容。",
+  "runtime.messaging.connection.authorizationCancelled":
+    "文档授权已取消，消息尚未交给 Agent。",
+  "runtime.messaging.connection.bindingFailed":
+    "连接器未能精确绑定这个文档链接。",
+  "runtime.messaging.connection.googleDocs": "连接 Google 文档",
+  "runtime.messaging.connection.googleSheets": "连接 Google 表格",
+  "runtime.messaging.connection.googleSlides": "连接 Google 幻灯片",
+  "runtime.messaging.connection.notion": "连接 Notion 页面",
+  "runtime.messaging.connection.projectRequired":
+    "请先进入一个项目，再连接文档链接。",
+  "runtime.messaging.credential.saveFailed":
+    "密码本安全保存失败；为避免泄漏，这条消息没有发送。",
+  "runtime.messaging.persistence.startFailed":
+    "本机加密历史保存失败，任务没有启动。",
+  "runtime.messaging.proposal.appliedReceiptFailed":
+    "修改已应用，但本机结果记录失败。",
+  "runtime.messaging.proposal.autoApplyFailed":
+    "修改未能自动应用；请打开 Diff 检查后重试。",
+  "runtime.messaging.proposal.executorUnavailable": "修改执行器尚未准备好。",
+  "runtime.messaging.run.alreadyRunning": "这个对话已有任务正在运行。",
+  "runtime.messaging.run.capacity":
+    "最多同时处理 3 个对话，请等待一个任务完成后再发送。",
+  "runtime.messaging.run.failed": "Agent 运行失败，请重试。",
+  "runtime.messaging.run.interrupted": "任务在后台中断；请检查结果后重新发送。",
+  "runtime.messaging.run.interruptedAttachments":
+    "任务在后台中断；请恢复文字并重新选择附件。",
+  "runtime.messaging.run.stateChanged": "任务状态已变化，请重新发送。",
+  "runtime.messaging.run.timeout": "模型长时间没有新进展，请检查网络后重试。",
+  "runtime.messaging.retry.failed": "上次任务失败，可重试。",
+  "runtime.messaging.retry.failedAttachments":
+    "上次任务失败；请重新选择附件后再发送。",
+  "runtime.messaging.retry.interrupted":
+    "上次任务中断，结果可能已产生；请检查项目状态后再重新发送。",
+  "runtime.messaging.retry.interruptedAttachments":
+    "上次任务中断，结果可能已产生；请恢复文字并重新选择附件。",
+  "runtime.messaging.source.acquire": "获取项目 Source Snapshot",
+  "runtime.messaging.source.cached": "使用项目缓存：{source} · {version}",
+  "runtime.messaging.source.extract": "校验并解压源码快照",
+  "runtime.messaging.source.fallback":
+    "源码快照不可用，继续使用浏览器或只读网络访问",
+  "runtime.messaging.source.imported": "来源已导入：{source} · {version}",
+  "runtime.messaging.source.inspect": "识别并校验项目来源",
+  "runtime.messaging.source.projectRequired":
+    "请先进入一个项目，再导入 GitHub 公共仓库源码。",
+  "runtime.messaging.source.store": "保存项目共享源码",
+  "runtime.messaging.status.generating": "正在整理回复",
+  "runtime.messaging.status.connecting": "连接模型",
+  "runtime.messaging.status.thinking": "正在思考",
+  "runtime.messaging.steer.failed": "补充失败：{error}",
+  "runtime.messaging.steer.retry": "请重试",
+  "runtime.messaging.steer.queued": "已加入当前运行",
+  "runtime.messaging.tool.complete": "完成",
+  "runtime.messaging.tool.failed": "失败",
+  "runtime.messaging.tool.staged": "已加入修改",
+  "runtime.messaging.tool.status": "{label} · {outcome}",
+  "runtime.security.capture.label.apiToken": "对话中的访问令牌",
+  "runtime.security.capture.label.password": "对话中的密码",
+  "runtime.security.capture.label.privateKey": "对话中的 SSH 私钥",
+  "runtime.security.capture.label.privateKeyPassphrase": "对话中的私钥口令",
+  "runtime.security.capture.label.secret": "对话中的秘密",
+  "runtime.security.capture.saved": "【已安全保存到密码本：{label} · ••••】",
+  "runtime.app.claim.failed": "无法把这个对话认领到所选项目。",
+  "runtime.app.claim.quickOnly": "只有快速对话可以认领到项目。",
+  "runtime.app.claim.waitForRun": "请等待当前任务结束后再认领。",
+  "runtime.app.connection.google.authorizationProjectRequired":
+    "请先选择一个项目，再授权 Google Workspace。",
+  "runtime.app.connection.google.linkRequired":
+    "请输入 Google 文档、表格或幻灯片链接。",
+  "runtime.app.connection.google.projectRequired":
+    "请先选择一个项目，再连接 Google Workspace 文件。",
+  "runtime.app.connection.notion.projectRequired":
+    "请先选择一个项目，再连接 Notion 页面。",
+  "runtime.app.connection.native.projectRequired":
+    "请先选择一个项目，再连接设备资源。",
+  "runtime.app.connector.contentMismatch": "项目连接器返回了不匹配的文件内容。",
+  "runtime.app.connector.referenceMissing":
+    "项目连接器没有返回唯一的文件引用。",
+  "runtime.app.conversation.deleteWhileWriting":
+    "修改正在写入，完成后才能删除这个对话。",
+  "runtime.app.conversation.missing": "这个对话已经不存在。",
+  "runtime.app.credential.deletedSshCleanup":
+    "凭据已删除；部分失效的 SSH 连接资料将在下次启动时清理。",
+  "runtime.app.credential.updatedSshInvalidated":
+    "凭据已更新，但关联的 SSH 连接需要重新配置。",
+  "runtime.app.file.changed": "项目文件已变化，请重新打开。",
+  "runtime.app.file.connectionChanged": "文件连接已变化，请返回项目后重试。",
+  "runtime.app.file.missing": "找不到当前项目文件。",
+  "runtime.app.file.projectMissing": "找不到文件所属项目。",
+  "runtime.app.globalMemory.createFailed": "全局记忆创建失败，请重试。",
+  "runtime.app.globalMemory.missing": "找不到这条全局记忆。",
+  "runtime.app.globalMemory.saveFailed": "全局记忆保存失败，请重试。",
+  "runtime.app.globalSkill.createFailed": "全局 Skill 创建失败，请重试。",
+  "runtime.app.globalSkill.defaultDescription": "自定义 Skill",
+  "runtime.app.globalSkill.missing": "找不到这个全局 Skill。",
+  "runtime.app.globalSkill.saveFailed": "全局 Skill 保存失败，请重试。",
+  "runtime.app.hydration.loading": "正在读取本机加密历史",
+  "runtime.app.preview.fileReferenceMissing": "项目连接器缺少预览文件：{path}",
+  "runtime.app.preview.htmlOnly": "只有 HTML 文件可以作为 H5 预览入口。",
+  "runtime.app.preview.missing": "找不到当前项目 H5 文件。",
+  "runtime.app.preview.tooManyFiles":
+    "H5 预览目录文件过多，请选择更具体的入口目录。",
+  "runtime.app.project.initFailed": "项目空间初始化失败，请重试。",
+  "runtime.app.projectMemory.fileMissing": "项目记忆文件不存在。",
+  "runtime.app.projectMemory.projectMissing": "找不到记忆所属项目。",
+  "runtime.app.projectSkill.createFailed": "项目 Skill 创建失败，请重试。",
+  "runtime.app.skillDownload.integrityFailed":
+    "Skill 内容校验失败，已停止安装。",
+  "runtime.app.skillDownload.projectMissing": "找不到要安装 Skill 的项目。",
+  "runtime.app.skillDownload.unsupported": "当前 App 不能安全安装这个 Skill。",
+  "runtime.app.skillDownload.duplicate": "项目中已存在同名 Skill。",
+  "runtime.app.skillDownload.stageFailed": "Skill 安装 Diff 无法暂存。",
+  "runtime.app.skillDownload.updating": "这个 Skill 正在更新。",
+  "runtime.app.skillDownload.notDownloaded": "这个 Skill 不是从目录下载的。",
+  "runtime.app.skillDownload.catalogMissing": "目录中已找不到这个 Skill。",
+  "runtime.app.skillDownload.updateUnsupported":
+    "新版本与当前 App 不兼容，已停止更新。",
+  "runtime.app.skillDownload.resourceMissing": "项目中的 Skill 文件已不存在。",
+  "runtime.app.proposal.applying": "这个修改提案正在执行，请等待结果。",
+  "runtime.app.proposal.applyComplete":
+    "修改已完成：{count} 个目标通过版本检查并更新；本次对话共用一个还原点。",
+  "runtime.app.proposal.historyUnavailable":
+    "本机加密历史当前不可用，不能安全执行外部修改。",
+  "runtime.app.proposal.missing": "找不到这个修改提案。",
+  "runtime.app.proposal.notPending": "这个修改提案已经执行，不能重复应用。",
+  "runtime.app.proposal.persistenceFailed":
+    "修改已应用，但本机加密结果记录失败。请勿重复应用；请先保留当前页面并修复本机存储。",
+  "runtime.app.proposal.projectConversationMismatch":
+    "修改提案与所属项目对话不一致，不能执行。",
+  "runtime.app.proposal.projectMissing": "找不到修改提案所属项目。",
+  "runtime.app.proposal.restoreComplete":
+    "恢复已完成：{count} 个目标已回到本次对话首次修改前。",
+  "runtime.app.proposal.restorePointMissing": "本次对话还没有可用的还原点。",
+  "runtime.app.proposal.stale": "这个修改提案已失效或已经执行，不能重复应用。",
+  "runtime.app.projectFile.proposalChanged":
+    "项目文件已变化，无法创建修改提案。请重新打开文件。",
+  "runtime.app.storage.credentialVaultReadFailed":
+    "密码本无法安全读取；当前不会覆盖原数据。",
+  "runtime.app.storage.googleDocsRestoreFailed":
+    "Google 文档连接无法安全恢复，请重新连接。",
+  "runtime.app.storage.googleSheetsRestoreFailed":
+    "Google 表格连接无法安全恢复，请重新连接。",
+  "runtime.app.storage.googleSlidesRestoreFailed":
+    "Google 幻灯片连接无法安全恢复，请重新连接。",
+  "runtime.app.storage.historyReadFailed":
+    "本机加密历史无法读取；当前不会覆盖原数据，请稍后重试。",
+  "runtime.app.storage.mcpConnectionsReadFailed":
+    "已保存的 MCP 连接无法安全读取；当前不会覆盖原数据。",
+  "runtime.app.storage.downloadedSkillsReadFailed":
+    "下载 Skill 清单无法安全读取；当前不会覆盖原数据。",
+  "runtime.app.mcp.notFound": "MCP 连接不存在。",
+  "runtime.app.mcp.projectMissing": "请先选择现有项目，再修改 MCP 连接。",
+  "runtime.app.storage.nativeConnectionsRestoreFailed":
+    "部分连接无法安全恢复，请在连接器中重新授权。",
+  "runtime.app.storage.notionRestoreFailed":
+    "Notion 连接无法安全恢复，请重新连接。",
+  "runtime.app.storage.projectSourcesRestoreFailed":
+    "项目来源快照无法安全恢复，请重新导入该来源。",
+  "runtime.app.storage.sshConfigRestoreFailed":
+    "SSH 命令配置无法安全恢复，请在设置中重新配置。",
+  "runtime.app.storage.sshSessionRestoreFailed":
+    "SSH 命令会话恢复失败，请在设置中重新连接。",
+  "runtime.app.storage.saveFailed":
+    "本机加密历史保存失败；外部修改仍受 Diff 与恢复点保护。",
+  "runtime.app.ssh.credentialNotAuthorized":
+    "这条 SSH 凭据没有授权给当前项目。",
+  "runtime.app.workspace.conversationMissing":
+    "这个对话已经不存在，无法连接文档。",
+  "runtime.app.workspace.defaultName": "文档工作区",
+  "runtime.app.workspace.scopeFailed": "无法为当前对话建立安全的文档作用域。",
+} as const;
+
+export type RuntimeMessageKey = keyof typeof zhCNRuntimeMessages;

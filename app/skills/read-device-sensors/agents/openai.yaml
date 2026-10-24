@@ -1,0 +1,6 @@
+interface:
+  display_name: "读取设备传感器"
+  short_description: "发现并限时读取运动、环境与计步传感器"
+  default_prompt: "使用 $read-device-sensors 读取当前设备传感器。"
+policy:
+  allow_implicit_invocation: true

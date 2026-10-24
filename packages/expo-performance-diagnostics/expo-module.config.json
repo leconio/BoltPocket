@@ -1,0 +1,8 @@
+{
+  "platforms": ["apple"],
+  "apple": {
+    "modules": ["BoltPocketPerformanceDiagnosticsModule"],
+    "podspecPath": "BoltPocketPerformanceDiagnostics.podspec",
+    "swiftModuleName": "BoltPocketPerformanceDiagnostics"
+  }
+}

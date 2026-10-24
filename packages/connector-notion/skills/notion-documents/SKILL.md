@@ -1,0 +1,27 @@
+---
+name: notion-documents
+description: 通过当前项目已授权的 Notion 连接器读取、创建和安全编辑 Notion 页面。用户贴出 notion.so、app.notion.com 或 notion.site 页面链接，提到 Notion，或要求查找、读取、改写、创建、移入回收站、恢复 Notion 内容时使用。
+---
+
+# Notion 文档
+
+只使用当前项目连接器公开的页面。Notion OAuth 仅覆盖用户在授权界面授予集成访问权的内容；不要把整个工作区授权或公开网页访问当成项目资源授权。
+
+## 工作流
+
+1. 调用 `project_context_read`，取得 Notion connectorId、能力、资源 ID 与 `shellPath`。
+2. 若用户贴了链接，从 slug、路径或 `p` 参数中提取最后一个 32 位十六进制页面 ID，忽略连字符并转成小写。在本 Skill 末尾由宿主追加的“当前授权绑定”中匹配同一页面。
+3. 用绑定中的 `resourceId` 在项目上下文中找到唯一 `shellPath`。找不到唯一匹配时停止，不要猜页面名、搜索其他页面或退回网页抓取。
+4. 使用 `read` 获取完整 Markdown 后再回答或修改。若连接器报告内容截断、未知 block、已回收或只读，保持只读并说明原因。
+
+## 操作规则
+
+- 编辑：优先用 `edit` 做唯一、精确替换；只有用户明确要求整体重写时才用 `write`。保留未指定内容、增强 Markdown 标记、代码围栏、子页面和数据库引用。
+- 创建：从 `project_context_read` 选择具有 `create-text` 的 Notion connectorId，再调用一次 `document_create`，传入完整 Markdown。同一轮不要再调用 `edit`、`write` 或可变更文件的 `bash`。
+- 回收站：只对资源元数据报告可回收的子页面使用可恢复动作。Notion 工作区顶层页面不能由 API 移入回收站；不要永久删除，也不要通过整页替换删除子页面或数据库。
+
+## Diff 与校验
+
+Notion 会规范化 block 间空行和行尾空白。只编辑连接器返回的规范 Markdown；所有写入先形成可审查 Diff，宿主再绑定哈希、重查版本、创建恢复点、调用 Notion，并复读验证结果。不要在宿主回执前声称外部页面已更新。
+
+权限不足、同步页面、重复匹配、版本冲突或内容超限时明确停止，不扩大授权、不强制覆盖。

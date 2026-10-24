@@ -1,0 +1,6 @@
+interface:
+  display_name: "使用 H5 内置资源"
+  short_description: "检索并正确引用离线字体图标、UI 精灵和像素精灵表"
+  default_prompt: "Use $use-h5-resources to search the enabled project resource catalog, declare only the selected packs in the H5 manifest, and verify exact paths in preview."
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,8 @@
+{
+  "platforms": ["apple"],
+  "apple": {
+    "modules": ["BoltPocketProjectPreviewServerModule"],
+    "podspecPath": "BoltPocketProjectPreviewServer.podspec",
+    "swiftModuleName": "BoltPocketProjectPreviewServer"
+  }
+}

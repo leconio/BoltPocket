@@ -1,0 +1,4 @@
+interface:
+  display_name: "Notion 文档"
+  short_description: "通过项目连接器读取、创建与安全编辑 Notion 页面"
+  default_prompt: "使用 $notion-documents 读取或修改我贴出的 Notion 页面链接。"

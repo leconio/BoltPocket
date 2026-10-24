@@ -1,0 +1,36 @@
+{
+  "name": "@boltpocket/expo-device-capabilities",
+  "version": "0.1.0",
+  "description": "Privacy-bounded native device capabilities for BoltPocket",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "react-native": "./src/index.ts",
+      "import": "./src/index.ts"
+    },
+    "./app.plugin.cjs": "./app.plugin.cjs"
+  },
+  "scripts": {
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "expo-modules-core": "57.0.10"
+  },
+  "peerDependencies": {
+    "expo": "*",
+    "react-native": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.2",
+    "eslint": "^9.39.5",
+    "eslint-config-expo": "~57.0.1",
+    "expo": "~57.0.12",
+    "react-native": "0.86.2",
+    "typescript": "~6.0.3"
+  }
+}

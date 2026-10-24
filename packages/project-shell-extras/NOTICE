@@ -1,0 +1,12 @@
+@inhand/project-shell-extras
+
+The command names, command-line behavior, and selected implementation structure
+in this package are adapted from just-bash 3.2.0, commit
+1e06ce63c4f4e34b110283f419988b044135f779:
+
+  https://github.com/vercel-labs/just-bash
+
+just-bash is licensed under the Apache License, Version 2.0. The adaptations in
+this package retain that license. Runtime dependencies retain their upstream
+licenses: fflate (MIT), yaml (ISC), smol-toml (BSD-3-Clause), fast-xml-parser
+(MIT), ini (ISC), and Papa Parse (MIT).

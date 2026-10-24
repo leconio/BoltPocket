@@ -1,0 +1,483 @@
+--- a/ggml/src/ggml-vulkan/ggml-vulkan.cpp
++++ b/ggml/src/ggml-vulkan/ggml-vulkan.cpp
+@@ -146,7 +146,18 @@
+ bool ggml_vk_lightning_indexer_k_type_supported(ggml_type type) {
+     return std::find(lightning_indexer_k_types.begin(), lightning_indexer_k_types.end(), type) != lightning_indexer_k_types.end();
+ }
++static bool ggml_vk_is_qualcomm_proprietary(const vk_device & device) {
++    return device->vendor_id == VK_VENDOR_ID_QUALCOMM &&
++           device->driver_id == vk::DriverId::eQualcommProprietary;
++}
++
+ void ggml_vk_print_device_fault_info(const vk_device& device) {
++    // This driver can dereference null while querying a lost device. Preserve
++    // the original submission error and node diagnostics instead.
++    if (ggml_vk_is_qualcomm_proprietary(device)) {
++        GGML_LOG_ERROR("ggml_vulkan: skipping unsafe Qualcomm device-fault query\n");
++        return;
++    }
+     if (!device->device_fault || !device->pfn_vkGetDeviceFaultInfoEXT) {
+         return;
+     }
+@@ -242,6 +253,20 @@
+             GGML_LOG_CONT("  node %d: %s (%s)\n",
+                     j, cgraph->nodes[j]->name, ggml_op_name(cgraph->nodes[j]->op));
+         }
++        const auto print_tensor = [](const char * label, const ggml_tensor * tensor) {
++            GGML_LOG_CONT("    %s: %s %s ne=[%lld,%lld,%lld,%lld] nb=[%zu,%zu,%zu,%zu]\n",
++                label, tensor->name, ggml_type_name(tensor->type),
++                (long long)tensor->ne[0], (long long)tensor->ne[1],
++                (long long)tensor->ne[2], (long long)tensor->ne[3],
++                tensor->nb[0], tensor->nb[1], tensor->nb[2], tensor->nb[3]);
++        };
++        print_tensor("dst", cgraph->nodes[j]);
++        for (int s = 0; s < 4; ++s) {
++            if (cgraph->nodes[j]->src[s]) {
++                const std::string label = "src" + std::to_string(s);
++                print_tensor(label.c_str(), cgraph->nodes[j]->src[s]);
++            }
++        }
+     }
+     GGML_LOG_CONT("  total: %d ops, %.2f GFLOP\n", n_ops, total_flops / 1e9);
+ }
+@@ -771,7 +796,10 @@
+     try {
+         pipeline->pipeline = device->device.createComputePipeline(VK_NULL_HANDLE, compute_pipeline_create_info).value;
+     } catch (const vk::SystemError& e) {
+-        std::cerr << "ggml_vulkan: compute pipeline creation failed for " << pipeline->name << ": " << e.what() << std::endl;
++        GGML_LOG_ERROR("ggml_vulkan: compute pipeline creation failed for %s: %s\n", pipeline->name.c_str(), e.what());
++        for (size_t i = 0; i < specialization_constants.size(); ++i) {
++            GGML_LOG_ERROR("ggml_vulkan: specialization[%zu]=%u\n", i, specialization_constants[i]);
++        }
+         throw;
+     }
+ 
+@@ -2887,6 +2915,9 @@
+         }
+         return is_rdna3_or_4 ? 4u : rows;
+     };
++    // Smaller private accumulator arrays avoid proprietary Adreno compiler failures.
++    const uint32_t rm_f16 = ggml_vk_is_qualcomm_proprietary(device) ? 1 : 2;
++    if (ggml_vk_is_qualcomm_proprietary(device)) rm_kq = 1;
+     uint32_t rm_iq = 2 * rm_kq;
+ 
+     const bool use_subgroups = device->subgroup_arithmetic;
+@@ -2927,7 +2958,7 @@
+ 
+         for (uint32_t i = 0; i < mul_mat_vec_max_cols; ++i) {
+             ggml_vk_create_pipeline(device, device->pipeline_dequant_mul_mat_vec_f32_f32[w][GGML_TYPE_F32 ][i], "mul_mat_vec_f32_f32_f32",  arr_dmmv_f32_f32_f32_len[reduc],  arr_dmmv_f32_f32_f32_data[reduc],  "main", mul_mat_vec_num_bindings, sizeof(vk_mat_vec_push_constants), {1, 1, 1}, {wg_size_subgroup, 1, i+1}, 1, false, use_subgroups, force_subgroup_size);
+-            ggml_vk_create_pipeline(device, device->pipeline_dequant_mul_mat_vec_f32_f32[w][GGML_TYPE_F16 ][i], "mul_mat_vec_f16_f32_f32",  arr_dmmv_f16_f32_f32_len[reduc],  arr_dmmv_f16_f32_f32_data[reduc],  "main", mul_mat_vec_num_bindings, sizeof(vk_mat_vec_push_constants), {2, 1, 1}, {wg_size_subgroup, 2, i+1}, 1, false, use_subgroups, force_subgroup_size);
++            ggml_vk_create_pipeline(device, device->pipeline_dequant_mul_mat_vec_f32_f32[w][GGML_TYPE_F16 ][i], "mul_mat_vec_f16_f32_f32",  arr_dmmv_f16_f32_f32_len[reduc],  arr_dmmv_f16_f32_f32_data[reduc],  "main", mul_mat_vec_num_bindings, sizeof(vk_mat_vec_push_constants), {rm_f16, 1, 1}, {wg_size_subgroup, rm_f16, i+1}, 1, false, use_subgroups, force_subgroup_size);
+             ggml_vk_create_pipeline(device, device->pipeline_dequant_mul_mat_vec_f32_f32[w][GGML_TYPE_BF16][i], "mul_mat_vec_bf16_f32_f32", arr_dmmv_bf16_f32_f32_len[reduc], arr_dmmv_bf16_f32_f32_data[reduc], "main", mul_mat_vec_num_bindings, sizeof(vk_mat_vec_push_constants), {2, 1, 1}, {wg_size_subgroup, 2, i+1}, 1, false, use_subgroups, force_subgroup_size);
+             ggml_vk_create_pipeline(device, device->pipeline_dequant_mul_mat_vec_f32_f32[w][GGML_TYPE_Q1_0][i], "mul_mat_vec_q1_0_f32_f32", arr_dmmv_q1_0_f32_f32_len[reduc], arr_dmmv_q1_0_f32_f32_data[reduc], "main", mul_mat_vec_num_bindings, sizeof(vk_mat_vec_push_constants), {2*rm_stdq, 1, 1}, {wg_size_subgroup, 2*rm_stdq, i+1}, 1, true, use_subgroups, force_subgroup_size);
+             ggml_vk_create_pipeline(device, device->pipeline_dequant_mul_mat_vec_f32_f32[w][GGML_TYPE_Q2_0][i], "mul_mat_vec_q2_0_f32_f32", arr_dmmv_q2_0_f32_f32_len[reduc], arr_dmmv_q2_0_f32_f32_data[reduc], "main", mul_mat_vec_num_bindings, sizeof(vk_mat_vec_push_constants), {2*rm_stdq, 1, 1}, {wg_size_subgroup, 2*rm_stdq, i+1}, 1, true, use_subgroups, force_subgroup_size);
+@@ -2956,7 +2987,7 @@
+             ggml_vk_create_pipeline(device, device->pipeline_dequant_mul_mat_vec_f32_f32[w][GGML_TYPE_NVFP4][i],   "mul_mat_vec_nvfp4_f32_f32",   OCP_DMMV_LEN(arr_dmmv_nvfp4_f32_f32, reduc16), OCP_DMMV_DATA(arr_dmmv_nvfp4_f32_f32, reduc16), "main", mul_mat_vec_num_bindings, sizeof(vk_mat_vec_push_constants), {rm_iq, 1, 1}, {wg_size_subgroup16, rm_iq, i+1}, 1, true, use_subgroups16, force_subgroup_size16);
+ 
+             ggml_vk_create_pipeline(device, device->pipeline_dequant_mul_mat_vec_f16_f32[w][GGML_TYPE_F32 ][i], "mul_mat_vec_f32_f16_f32",  arr_dmmv_f32_f16_f32_len[reduc],  arr_dmmv_f32_f16_f32_data[reduc],  "main", mul_mat_vec_num_bindings, sizeof(vk_mat_vec_push_constants), {1, 1, 1}, {wg_size_subgroup, 1, i+1}, 1, false, use_subgroups, force_subgroup_size);
+-            ggml_vk_create_pipeline(device, device->pipeline_dequant_mul_mat_vec_f16_f32[w][GGML_TYPE_F16 ][i], "mul_mat_vec_f16_f16_f32",  arr_dmmv_f16_f16_f32_len[reduc],  arr_dmmv_f16_f16_f32_data[reduc],  "main", mul_mat_vec_num_bindings, sizeof(vk_mat_vec_push_constants), {2, 1, 1}, {wg_size_subgroup, 2, i+1}, 1, false, use_subgroups, force_subgroup_size);
++            ggml_vk_create_pipeline(device, device->pipeline_dequant_mul_mat_vec_f16_f32[w][GGML_TYPE_F16 ][i], "mul_mat_vec_f16_f16_f32",  arr_dmmv_f16_f16_f32_len[reduc],  arr_dmmv_f16_f16_f32_data[reduc],  "main", mul_mat_vec_num_bindings, sizeof(vk_mat_vec_push_constants), {rm_f16, 1, 1}, {wg_size_subgroup, rm_f16, i+1}, 1, false, use_subgroups, force_subgroup_size);
+             ggml_vk_create_pipeline(device, device->pipeline_dequant_mul_mat_vec_f16_f32[w][GGML_TYPE_BF16][i], "mul_mat_vec_bf16_f16_f32", arr_dmmv_bf16_f16_f32_len[reduc], arr_dmmv_bf16_f16_f32_data[reduc], "main", mul_mat_vec_num_bindings, sizeof(vk_mat_vec_push_constants), {2, 1, 1}, {wg_size_subgroup, 2, i+1}, 1, false, use_subgroups, force_subgroup_size);
+             ggml_vk_create_pipeline(device, device->pipeline_dequant_mul_mat_vec_f16_f32[w][GGML_TYPE_Q1_0][i], "mul_mat_vec_q1_0_f16_f32", arr_dmmv_q1_0_f16_f32_len[reduc], arr_dmmv_q1_0_f16_f32_data[reduc], "main", mul_mat_vec_num_bindings, sizeof(vk_mat_vec_push_constants), {2*rm_stdq, 1, 1}, {wg_size_subgroup, 2*rm_stdq, i+1}, 1, true, use_subgroups, force_subgroup_size);
+             ggml_vk_create_pipeline(device, device->pipeline_dequant_mul_mat_vec_f16_f32[w][GGML_TYPE_Q2_0][i], "mul_mat_vec_q2_0_f16_f32", arr_dmmv_q2_0_f16_f32_len[reduc], arr_dmmv_q2_0_f16_f32_data[reduc], "main", mul_mat_vec_num_bindings, sizeof(vk_mat_vec_push_constants), {2*rm_stdq, 1, 1}, {wg_size_subgroup, 2*rm_stdq, i+1}, 1, true, use_subgroups, force_subgroup_size);
+@@ -4268,8 +4299,10 @@
+         device->subgroup_vote = (vk11_props.subgroupSupportedStages & vk::ShaderStageFlagBits::eCompute) &&
+                                 (vk11_props.subgroupSupportedOperations & vk::SubgroupFeatureFlagBits::eVote);
+ 
+-        // Submit at least every 100 nodes, in case there are workloads without as much matmul.
+-        device->max_nodes_per_submit = 100;
++        // Proprietary Adreno loses the device with overlapping multi-dispatch
++        // submissions in the full model, even when individual kernels pass.
++        // Bound and fence each dispatch until that driver path is reliable.
++        device->max_nodes_per_submit = ggml_vk_is_qualcomm_proprietary(device) ? 1 : 100;
+         const char* GGML_VK_MAX_NODES_PER_SUBMIT = getenv("GGML_VK_MAX_NODES_PER_SUBMIT");
+         if (GGML_VK_MAX_NODES_PER_SUBMIT != nullptr) {
+             uint32_t max_nodes_per_submit = std::stoul(GGML_VK_MAX_NODES_PER_SUBMIT);
+@@ -4910,7 +4943,8 @@
+ 
+         device->idx = idx;
+ 
+-        device->serialize_submissions = getenv("GGML_VK_SERIALIZE_SUBMISSIONS") != nullptr;
++        device->serialize_submissions = ggml_vk_is_qualcomm_proprietary(device) ||
++                                        getenv("GGML_VK_SERIALIZE_SUBMISSIONS") != nullptr;
+ 
+         device->disable_fusion = getenv("GGML_VK_DISABLE_FUSION") != nullptr;
+ 
+@@ -6006,6 +6040,9 @@
+ }
+ 
+ static bool ggml_vk_get_mul_mat_mat_f16acc(ggml_backend_vk_context * ctx, ggml_type src0_type, ggml_type src1_type, ggml_prec prec) {
++    // Keep FP16 weight storage, but use FP32 for long scalar reductions.
++    if (ggml_vk_is_qualcomm_proprietary(ctx->device) &&
++        !ctx->device->coopmat_support && !ctx->device->coopmat2) return false;
+     if (src0_type == GGML_TYPE_F32 || src0_type == GGML_TYPE_BF16) return false;
+     if (src1_type == GGML_TYPE_Q8_1) return false;
+     if (src0_type == GGML_TYPE_F16) {
+@@ -7287,6 +7324,14 @@
+     init_pushconst_tensor_offsets(ctx, pc, x, residual, p_src, comb, dst);
+ 
+     ggml_vk_dispatch_pipeline(ctx, subctx, pipeline, { x_buf, r_buf, p_buf, c_buf, d_buf }, pc, { n_embd, n_tokens, 1 });
++}
++
++static bool ggml_vk_matvec_compiler_compatible(const vk_device & device, const ggml_tensor * dst) {
++    if (!ggml_vk_is_qualcomm_proprietary(device)) return true;
++    // Route rejected specializations through the general GPU matrix kernel.
++    const auto type = dst->src[0]->type;
++    if ((type == GGML_TYPE_IQ4_NL || type == GGML_TYPE_BF16) && dst->ne[1] > 1) return false;
++    return dst->ne[1] <= 4 && !(type == GGML_TYPE_Q4_K && dst->ne[1] == 1);
+ }
+ 
+ void ggml_vk_mul_mat(ggml_backend_vk_context * ctx, vk_context& subctx, const struct ggml_cgraph * cgraph, int node_idx) {
+@@ -7356,7 +7401,8 @@
+     // mul_mat_vec supports batching ne12*ne13 when ne11==1, or treating ne11 as the batch size (up to four)
+     // when ne12 and ne13 are one.
+     } else if ((dst->ne[1] == 1 || (dst->ne[1] <= mul_mat_vec_max_cols && src1->ne[2] * src1->ne[3] == 1)) &&
+-               (src0->type == GGML_TYPE_F32 || src0->type == GGML_TYPE_F16 || src0->type == GGML_TYPE_BF16 || ggml_is_quantized(src0->type))) {
++               (src0->type == GGML_TYPE_F32 || src0->type == GGML_TYPE_F16 || src0->type == GGML_TYPE_BF16 || ggml_is_quantized(src0->type)) &&
++               ggml_vk_matvec_compiler_compatible(ctx->device, dst)) {
+         ggml_vk_mul_mat_vec_q_f16(ctx, subctx, cgraph, node_idx);
+     } else {
+         ggml_vk_mul_mat_q_f16(ctx, subctx, src0, src1, dst, false);
+@@ -8015,7 +8061,7 @@
+         kblocksh_size = 0;
+     }
+ 
+-    const uint32_t total_size = tmpsh + tmpshv4 + masksh + iq_shmem + Qf + kvsh + kblocksh_size;
++    const uint32_t total_size = tmpsh + tmpshv4 + masksh + iq_shmem + Qf + kvsh + kblocksh_size + 16;
+     const bool supported = total_size <= device->properties.limits.maxComputeSharedMemorySize;
+ 
+     VK_LOG_DEBUG("ggml_vk_flash_attn_scalar_shmem_support(HSK=" << hsk << ", HSV=" << hsv << ", mmq=" << mmq << ", total_size=" << total_size << ", supported=" << supported);
+@@ -8245,7 +8291,11 @@
+     }
+ 
+     // Only use mask opt when the mask is fairly large. This hasn't been tuned extensively.
+-    bool use_mask_opt = mask && !use_sparse && nem1 >= 32 && nem0 * nem1 > 32768 && nem0 >= tuning_params.block_cols * 16
++    // The proprietary Adreno mask-classification pipeline can discard valid
++    // causal tiles once this optimization's size threshold is crossed. Keep
++    // the regular GPU mask path, whose values are checked directly by FA.
++    bool use_mask_opt = !ggml_vk_is_qualcomm_proprietary(ctx->device) &&
++                        mask && !use_sparse && nem1 >= 32 && nem0 * nem1 > 32768 && nem0 >= tuning_params.block_cols * 16
+                         && (ctx->device->architecture != vk_device_architecture::AMD_GCN || HSK > 256 || HSV > 256);
+     vk_fa_pipeline_state fa_pipeline_state = get_fa_pipeline_state(ctx->device, tuning_params, HSK, HSV, aligned, f32acc,
+                                                                    mask != nullptr, use_mask_opt, logit_softcap != 0, use_sparse, k_type_eff, v_type_eff);
+@@ -13603,6 +13653,9 @@
+ 
+     if ((ops.size() == 2 || ops.size() == 3 || ops.size() == 4) &&
+         ops.begin()[0] == GGML_OP_RMS_NORM && ops.begin()[1] == GGML_OP_MUL) {
++        // The multiplying RMS shader is miscompiled by proprietary Adreno.
++        // Separate RMS_NORM and MUL still execute on the GPU.
++        if (ggml_vk_is_qualcomm_proprietary(ctx->device)) return false;
+         // additional constraints specific to this fusion
+         const ggml_tensor *rms_norm = cgraph->nodes[node_idx];
+         const ggml_tensor *mul = cgraph->nodes[node_idx + 1];
+@@ -13690,6 +13743,8 @@
+         // additional constraints specific to this fusion
+         const ggml_tensor *mul = cgraph->nodes[node_idx];
+         const ggml_tensor *add = cgraph->nodes[node_idx + 1];
++
++        if (!ggml_vk_matvec_compiler_compatible(ctx->device, mul)) return false;
+ 
+         if (!mm_add_ok(mul, add)) {
+             return false;
+@@ -14184,6 +14239,7 @@
+ 
+ bool ggml_vk_can_fuse_rms_norm_mul_rope(ggml_backend_vk_context * ctx, const struct ggml_cgraph * cgraph,
+                                                int node_idx) {
++    if (ggml_vk_is_qualcomm_proprietary(ctx->device)) return false;
+     const ggml_tensor *rms = cgraph->nodes[node_idx + 0];
+     const ggml_tensor *mul = cgraph->nodes[node_idx + 1];
+     const ggml_tensor *rope = cgraph->nodes[node_idx + 2];
+@@ -14689,7 +14745,7 @@
+ 
+         // Signal the almost_ready fence when the graph is mostly complete (< 20% remaining)
+         bool almost_ready = (cgraph->n_nodes - i) < cgraph->n_nodes / 5;
+-        bool submit = (submitted_nodes >= ctx->device->max_nodes_per_submit) ||
++        bool submit = (submitted_nodes + 1 >= ctx->device->max_nodes_per_submit) ||
+                       (flops_per_submit != 0 && batch_flops >= flops_per_submit) ||
+                       (i + ctx->num_additional_fused_ops >= last_node) ||
+                       (almost_ready && !ctx->almost_ready_fence_pending);
+--- a/ggml/src/ggml-vulkan/vulkan-shaders/dequant_funcs.glsl
++++ b/ggml/src/ggml-vulkan/vulkan-shaders/dequant_funcs.glsl
+@@ -3,6 +3,7 @@
+ #endif
+ 
+ #include "types.glsl"
++#include "unpack8_32.glsl"
+ 
+ #if defined(DATA_A_F32)
+ FLOAT_TYPE dequantize1(uint ib, uint iqs, uint a_offset) {
+@@ -121,8 +122,8 @@
+     return vec2(int(data_a[a_offset + ib].qs[iqs]), int(data_a[a_offset + ib].qs[iqs + 1]));
+ }
+ vec4 dequantize4(uint ib, uint iqs, uint a_offset) {
+-    const i8vec2 v0 = unpack8(int32_t(data_a_packed16[a_offset + ib].qs[iqs/2])).xy; // vec4 used due to #12147
+-    const i8vec2 v1 = unpack8(int32_t(data_a_packed16[a_offset + ib].qs[iqs/2 + 1])).xy;
++    const ivec2 v0 = ggml_unpack_i8_i32(int(data_a_packed16[a_offset + ib].qs[iqs/2])).xy;
++    const ivec2 v1 = ggml_unpack_i8_i32(int(data_a_packed16[a_offset + ib].qs[iqs/2 + 1])).xy;
+     return vec4(v0.x, v0.y, v1.x, v1.y);
+ }
+ #endif
+--- a/ggml/src/ggml-vulkan/vulkan-shaders/flash_attn.comp
++++ b/ggml/src/ggml-vulkan/vulkan-shaders/flash_attn.comp
+@@ -49,6 +49,7 @@
+ 
+ const uint32_t masksh_stride = Br + 1;
+ shared FLOAT_TYPE masksh[Bc * masksh_stride];
++shared uint mask_has_value;
+ 
+ #ifndef MMQ
+ const uint32_t qf_stride = HSK / 4 + 1;
+@@ -208,6 +209,9 @@
+                 bool nem1_bounds_check = !(p.gqa_ratio > 1) && (p.nem1 % Br) != 0;
+ 
+                 float max_mask = NEG_FLT_MAX_OVER_2;
++                if (tid == 0) {
++                    mask_has_value = 0;
++                }
+                 barrier();
+                 [[unroll]] for (uint32_t idx = 0; idx < Bc * Br; idx += gl_WorkGroupSize.x) {
+                     uint32_t c = (idx + tid) % Bc;
+@@ -225,16 +229,19 @@
+                     }
+                 }
+                 // skip the block if the mask is entirely -inf
+-                bool all_less = subgroupAll(max_mask <= NEG_FLT_MAX_OVER_2);
+-                barrier();
+-                if (gl_SubgroupInvocationID == 0) {
+-                    tmpsh[gl_SubgroupID] = all_less ? NEG_FLT_MAX_OVER_2 : 0.0f;
+-                }
+-                barrier();
+-                [[unroll]] for (uint s = 0; s < gl_NumSubgroups; ++s) {
+-                    max_mask = max(max_mask, tmpsh[s]);
+-                }
+-                if (max_mask <= NEG_FLT_MAX_OVER_2) {
++                // A workgroup flag also handles partially populated mask tiles
++                // on proprietary Adreno, where the subgroup-vote path can
++                // incorrectly discard a tile that contains valid entries.
++                if (max_mask > NEG_FLT_MAX_OVER_2) {
++                    atomicOr(mask_has_value, 1);
++                }
++                barrier();
++                // Finish every invocation's read before the next tile can reset
++                // the shared flag. In particular, an all-masked tile skips the
++                // rest of this iteration and otherwise has no closing barrier.
++                const bool skip_masked_tile = mask_has_value == 0;
++                barrier();
++                if (skip_masked_tile) {
+                     continue;
+                 }
+             }
+--- a/ggml/src/ggml-vulkan/vulkan-shaders/mul_mat_vec_q2_k.comp
++++ b/ggml/src/ggml-vulkan/vulkan-shaders/mul_mat_vec_q2_k.comp
+@@ -2,6 +2,7 @@
+ #extension GL_EXT_shader_explicit_arithmetic_types_int32 : require
+ 
+ #include "mul_mat_vec_base.glsl"
++#include "unpack8_32.glsl"
+ 
+ layout(local_size_x_id = 0, local_size_y = 1, local_size_z = 1) in;
+ 
+@@ -36,10 +37,10 @@
+         }
+ 
+         const uint32_t qs_u32 = uint32_t(data_a_packed16[ib0 + i].qs[q_offset / 2]) | (uint32_t(data_a_packed16[ib0 + i].qs[q_offset / 2 + 8]) << 16);
+-        const vec4 qs_u32_0 = vec4(unpack8(qs_u32 & 0x03030303));
+-        const vec4 qs_u32_2 = vec4(unpack8((qs_u32 >> 2) & 0x03030303));
+-        const vec4 qs_u32_4 = vec4(unpack8((qs_u32 >> 4) & 0x03030303));
+-        const vec4 qs_u32_6 = vec4(unpack8((qs_u32 >> 6) & 0x03030303));
++        const vec4 qs_u32_0 = vec4(ggml_unpack_u8_u32(qs_u32 & 0x03030303));
++        const vec4 qs_u32_2 = vec4(ggml_unpack_u8_u32((qs_u32 >> 2) & 0x03030303));
++        const vec4 qs_u32_4 = vec4(ggml_unpack_u8_u32((qs_u32 >> 4) & 0x03030303));
++        const vec4 qs_u32_6 = vec4(ggml_unpack_u8_u32((qs_u32 >> 6) & 0x03030303));
+ 
+         const FLOAT_TYPEV2 dm = vec2(data_a[ib0 + i].dm);
+ 
+--- a/ggml/src/ggml-vulkan/vulkan-shaders/mul_mat_vec_q4_k.comp
++++ b/ggml/src/ggml-vulkan/vulkan-shaders/mul_mat_vec_q4_k.comp
+@@ -3,6 +3,7 @@
+ #extension GL_EXT_shader_explicit_arithmetic_types_int32 : require
+ 
+ #include "mul_mat_vec_base.glsl"
++#include "unpack8_32.glsl"
+ 
+ layout(local_size_x_id = 0, local_size_y = 1, local_size_z = 1) in;
+ 
+@@ -22,8 +23,8 @@
+ 
+         const uint32_t scale_0_4_l = (scale4_u32 << 16) | scale0_u32;
+         const uint32_t scale_0_4_h = (scale_0_4_l & 0xC0C0C0C0) >> 2;
+-        const vec4 scale_0_4_l_f = vec4(unpack8(scale_0_4_l & 0x3F3F3F3F));
+-        const vec4 scale8_f = vec4(unpack8((((scale8_u32 << 12) | scale8_u32) & 0x0F0F0F0F) | scale_0_4_h));
++        const vec4 scale_0_4_l_f = vec4(ggml_unpack_u8_u32(scale_0_4_l & 0x3F3F3F3F));
++        const vec4 scale8_f = vec4(ggml_unpack_u8_u32((((scale8_u32 << 12) | scale8_u32) & 0x0F0F0F0F) | scale_0_4_h));
+ 
+         const FLOAT_TYPE sc0 = scale_0_4_l_f.x;
+         const FLOAT_TYPE sc1 = scale_0_4_l_f.y;
+@@ -42,10 +43,10 @@
+         const uint32_t qs64_u32_lo4 = qs64_u32 & 0x0F0F0F0F;
+         const uint32_t qs64_u32_hi4 = (qs64_u32 >> 4) & 0x0F0F0F0F;
+ 
+-        const vec4 qs0_lo4 = vec4(unpack8(qs0_u32_lo4));
+-        const vec4 qs64_lo4 = vec4(unpack8(qs64_u32_lo4));
+-        const vec4 qs0_hi4 = vec4(unpack8(qs0_u32_hi4));
+-        const vec4 qs64_hi4 = vec4(unpack8(qs64_u32_hi4));
++        const vec4 qs0_lo4 = vec4(ggml_unpack_u8_u32(qs0_u32_lo4));
++        const vec4 qs64_lo4 = vec4(ggml_unpack_u8_u32(qs64_u32_lo4));
++        const vec4 qs0_hi4 = vec4(ggml_unpack_u8_u32(qs0_u32_hi4));
++        const vec4 qs64_hi4 = vec4(ggml_unpack_u8_u32(qs64_u32_hi4));
+ 
+         const FLOAT_TYPE q4_0  = qs0_lo4.x;
+         const FLOAT_TYPE q4_1  = qs0_lo4.y;
+--- a/ggml/src/ggml-vulkan/vulkan-shaders/mul_mat_vec_q5_k.comp
++++ b/ggml/src/ggml-vulkan/vulkan-shaders/mul_mat_vec_q5_k.comp
+@@ -3,6 +3,7 @@
+ #extension GL_EXT_shader_explicit_arithmetic_types_int32 : require
+ 
+ #include "mul_mat_vec_base.glsl"
++#include "unpack8_32.glsl"
+ 
+ layout(local_size_x_id = 0, local_size_y = 1, local_size_z = 1) in;
+ 
+@@ -22,8 +23,8 @@
+ 
+         const uint32_t scale_0_4_l = (scale4_u32 << 16) | scale0_u32;
+         const uint32_t scale_0_4_h = (scale_0_4_l & 0xC0C0C0C0) >> 2;
+-        const vec4 scale_0_4_l_f = vec4(unpack8(scale_0_4_l & 0x3F3F3F3F));
+-        const vec4 scale8_f = vec4(unpack8((((scale8_u32 << 12) | scale8_u32) & 0x0F0F0F0F) | scale_0_4_h));
++        const vec4 scale_0_4_l_f = vec4(ggml_unpack_u8_u32(scale_0_4_l & 0x3F3F3F3F));
++        const vec4 scale8_f = vec4(ggml_unpack_u8_u32((((scale8_u32 << 12) | scale8_u32) & 0x0F0F0F0F) | scale_0_4_h));
+ 
+         const FLOAT_TYPE sc0 = scale_0_4_l_f.x;
+         const FLOAT_TYPE sc1 = scale_0_4_l_f.y;
+@@ -54,10 +55,10 @@
+         qs64_80_u32_lo4 += qs64_80_lo4_offset16;
+         qs64_80_u32_hi4 += qs64_80_hi4_offset16;
+ 
+-        const vec4 qs0_16_lo4 = vec4(unpack8(qs0_16_u32_lo4));
+-        const vec4 qs64_80_lo4 = vec4(unpack8(qs64_80_u32_lo4));
+-        const vec4 qs0_16_hi4 = vec4(unpack8(qs0_16_u32_hi4));
+-        const vec4 qs64_80_hi4 = vec4(unpack8(qs64_80_u32_hi4));
++        const vec4 qs0_16_lo4 = vec4(ggml_unpack_u8_u32(qs0_16_u32_lo4));
++        const vec4 qs64_80_lo4 = vec4(ggml_unpack_u8_u32(qs64_80_u32_lo4));
++        const vec4 qs0_16_hi4 = vec4(ggml_unpack_u8_u32(qs0_16_u32_hi4));
++        const vec4 qs64_80_hi4 = vec4(ggml_unpack_u8_u32(qs64_80_u32_hi4));
+ 
+         const FLOAT_TYPE q4_0  = qs0_16_lo4.x;
+         const FLOAT_TYPE q4_1  = qs0_16_lo4.y;
+--- a/ggml/src/ggml-vulkan/vulkan-shaders/mul_mat_vec_q6_k.comp
++++ b/ggml/src/ggml-vulkan/vulkan-shaders/mul_mat_vec_q6_k.comp
+@@ -3,6 +3,7 @@
+ #extension GL_EXT_shader_explicit_arithmetic_types_int32 : require
+ 
+ #include "mul_mat_vec_base.glsl"
++#include "unpack8_32.glsl"
+ 
+ layout(local_size_x_id = 0, local_size_y = 1, local_size_z = 1) in;
+ 
+@@ -46,10 +47,10 @@
+         const uint32_t q2_u32 = ql0_u32_hi4  | qh4_u32;
+         const uint32_t q3_u32 = ql32_u32_hi4 | qh6_u32;
+ 
+-        const vec4 q0 = vec4(unpack8(q0_u32)) - 32;
+-        const vec4 q1 = vec4(unpack8(q1_u32)) - 32;
+-        const vec4 q2 = vec4(unpack8(q2_u32)) - 32;
+-        const vec4 q3 = vec4(unpack8(q3_u32)) - 32;
++        const vec4 q0 = vec4(ggml_unpack_u8_u32(q0_u32)) - 32;
++        const vec4 q1 = vec4(ggml_unpack_u8_u32(q1_u32)) - 32;
++        const vec4 q2 = vec4(ggml_unpack_u8_u32(q2_u32)) - 32;
++        const vec4 q3 = vec4(ggml_unpack_u8_u32(q3_u32)) - 32;
+ 
+         if (all_threads) {
+             sccache[csel][ix][itid] = FLOAT_TYPE(data_a[ib0 + i].scales[itid]);
+--- a/ggml/src/ggml-vulkan/vulkan-shaders/mul_mm_funcs.glsl
++++ b/ggml/src/ggml-vulkan/vulkan-shaders/mul_mm_funcs.glsl
+@@ -1,3 +1,5 @@
++#include "unpack8_32.glsl"
++
+ // k_pair is the K coordinate measured in FLOAT_TYPEV2 elements.
+ uint a_shmem_index(uint m, uint k_pair) {
+     if (APPLY_SLM_A_RESHAPE) {
+@@ -425,8 +427,8 @@
+         const uint iqs = idx & 0x07;
+ 
+         const float d = float(a_q8_0_p16.data[ib].d);
+-        const i8vec2 v0 = unpack8(int32_t(a_q8_0_p16.data[ib].qs[2*iqs])).xy; // vec4 used due to #12147
+-        const i8vec2 v1 = unpack8(int32_t(a_q8_0_p16.data[ib].qs[2*iqs + 1])).xy;
++        const ivec2 v0 = ggml_unpack_i8_i32(int(a_q8_0_p16.data[ib].qs[2*iqs])).xy;
++        const ivec2 v1 = ggml_unpack_i8_i32(int(a_q8_0_p16.data[ib].qs[2*iqs + 1])).xy;
+         const vec4 v = vec4(v0.x, v0.y, v1.x, v1.y) * d;
+ 
+         store_a(col, k_pair, FLOAT_TYPEV2(v.xy));
+@@ -468,7 +470,7 @@
+         const uint scalesi = iqs / 8;                      // 0..15
+         const uint qsshift = ((iqs % 64) / 16) * 2;        // 0,2,4,6
+ 
+-        const vec4 qs = vec4(unpack8((a_q2_k_p32.data[ib].qs[qsi / 2] >> qsshift) & 0x03030303));
++        const vec4 qs = vec4(ggml_unpack_u8_u32((a_q2_k_p32.data[ib].qs[qsi / 2] >> qsshift) & 0x03030303));
+         const uint scales = a_q2_k.data[ib].scales[scalesi];
+         const vec2 dm = vec2(a_q2_k.data[ib].dm);
+ 
+@@ -527,13 +529,13 @@
+         const uint mbidxshift0 = (is < 4) ? scalesoffs : scalesoffs + 4;
+         const uint mbidxshift1 = (is < 4) ? scalesoffs : scalesoffs + 2;
+ 
+-        const uint8_t sc    = uint8_t(((scales[scidx0] >> scidxshift0) & 0xF) | ((scales[0] >> scidxshift1) & 0x30));
+-        const uint8_t mbyte = uint8_t(((scales[mbidx0] >> mbidxshift0) & 0xF) | ((scales[1] >> mbidxshift1) & 0x30));
++        const uint sc    = ((scales[scidx0] >> scidxshift0) & 0xF) | ((scales[0] >> scidxshift1) & 0x30);
++        const uint mbyte = ((scales[mbidx0] >> mbidxshift0) & 0xF) | ((scales[1] >> mbidxshift1) & 0x30);
+ 
+         const float d = loadd.x * sc;
+         const float m = -loadd.y * mbyte;
+ 
+-        const vec4 q = vec4(unpack8((a_q4_k_p32.data[ib].qs[qsi / 4] >> (b * 4)) & 0x0F0F0F0F));
++        const vec4 q = vec4(ggml_unpack_u8_u32((a_q4_k_p32.data[ib].qs[qsi / 4] >> (b * 4)) & 0x0F0F0F0F));
+ 
+         store_a(col, k_pair, FLOAT_TYPEV2(fma(d, q.x, m), fma(d, q.y, m)));
+         store_a(col, k_pair + 1, FLOAT_TYPEV2(fma(d, q.z, m), fma(d, q.w, m)));
+@@ -564,15 +566,15 @@
+         const uint mbidxshift0 = (is < 4) ? scalesoffs : scalesoffs + 4;
+         const uint mbidxshift1 = (is < 4) ? scalesoffs : scalesoffs + 2;
+ 
+-        const uint8_t sc    = uint8_t(((scales[scidx0] >> scidxshift0) & 0xF) | ((scales[0] >> scidxshift1) & 0x30));
+-        const uint8_t mbyte = uint8_t(((scales[mbidx0] >> mbidxshift0) & 0xF) | ((scales[1] >> mbidxshift1) & 0x30));
++        const uint sc    = ((scales[scidx0] >> scidxshift0) & 0xF) | ((scales[0] >> scidxshift1) & 0x30);
++        const uint mbyte = ((scales[mbidx0] >> mbidxshift0) & 0xF) | ((scales[1] >> mbidxshift1) & 0x30);
+ 
+         const float d = loadd.x * sc;
+         const float m = -loadd.y * mbyte;
+ 
+         const uint qs = (a_q5_k_p32.data[ib].qs[qsi / 4] >> (b * 4)) & 0x0F0F0F0F;
+         const uint qh = ((a_q5_k_p32.data[ib].qh[qhi / 4] >> (iqs / 16)) & 0x01010101) << 4;
+-        const vec4 q = vec4(unpack8(qs | qh));
++        const vec4 q = vec4(ggml_unpack_u8_u32(qs | qh));
+ 
+         store_a(col, k_pair, FLOAT_TYPEV2(fma(d, q.x, m), fma(d, q.y, m)));
+         store_a(col, k_pair + 1, FLOAT_TYPEV2(fma(d, q.z, m), fma(d, q.w, m)));
+@@ -595,7 +597,7 @@
+ 
+         const uint ql = (uint(a_q6_k_p16.data[ib].ql[qsi]) >> b) & 0x0F0F;
+         const uint qh = (uint(a_q6_k_p16.data[ib].qh[qhi]) >> qhshift) & 0x0303;
+-        const vec2 q = (vec2(unpack8(ql | (qh << 4)).xy) - 32) * dscale;
++        const vec2 q = (vec2(ggml_unpack_u8_u32(ql | (qh << 4)).xy) - 32) * dscale;
+ 
+         store_a(col, k_pair, FLOAT_TYPEV2(q.x, q.y));
+     } else if (MmTypeA == GGML_TYPE_TQ1_0) {
+--- /dev/null
++++ b/ggml/src/ggml-vulkan/vulkan-shaders/unpack8_32.glsl
+@@ -0,0 +1,16 @@
++#ifndef GGML_UNPACK8_32_GLSL
++#define GGML_UNPACK8_32_GLSL
++
++// Keep unpacked values in 32-bit lanes. Some mobile shader compilers either
++// reject unpack8() or miscompile its narrow integer-vector result.
++uvec4 ggml_unpack_u8_u32(uint packed) {
++    return uvec4(packed & 255u, (packed >> 8) & 255u,
++                 (packed >> 16) & 255u, packed >> 24);
++}
++
++ivec4 ggml_unpack_i8_i32(int packed) {
++    return ivec4(bitfieldExtract(packed, 0, 8), bitfieldExtract(packed, 8, 8),
++                 bitfieldExtract(packed, 16, 8), bitfieldExtract(packed, 24, 8));
++}
++
++#endif

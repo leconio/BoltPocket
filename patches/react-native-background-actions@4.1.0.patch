@@ -1,0 +1,105 @@
+diff --git a/android/src/main/java/com/asterinet/react/bgactions/BackgroundActionsModule.java b/android/src/main/java/com/asterinet/react/bgactions/BackgroundActionsModule.java
+--- a/android/src/main/java/com/asterinet/react/bgactions/BackgroundActionsModule.java
++++ b/android/src/main/java/com/asterinet/react/bgactions/BackgroundActionsModule.java
+@@ -11,6 +11,9 @@ import com.facebook.react.bridge.ReactContext;
+ import com.facebook.react.bridge.ReactContextBaseJavaModule;
+ import com.facebook.react.bridge.ReactMethod;
+ import com.facebook.react.bridge.ReadableMap;
++import com.facebook.react.modules.core.DeviceEventManagerModule;
++
++import java.lang.ref.WeakReference;
+ 
+ @SuppressWarnings("WeakerAccess")
+ public class BackgroundActionsModule extends ReactContextBaseJavaModule {
+@@ -18,12 +21,25 @@ public class BackgroundActionsModule extends ReactContextBaseJavaModule {
+     private static final String TAG = "RNBackgroundActions";
+ 
++    private static WeakReference<ReactApplicationContext> reactContextReference = new WeakReference<>(null);
++
+     private final ReactContext reactContext;
+ 
+     private Intent currentServiceIntent;
+ 
+     public BackgroundActionsModule(ReactApplicationContext reactContext) {
+         super(reactContext);
+         this.reactContext = reactContext;
++        reactContextReference = new WeakReference<>(reactContext);
++    }
++
++    static void emitExpiration() {
++        final ReactApplicationContext context = reactContextReference.get();
++        if (context == null || !context.hasActiveReactInstance()) {
++            return;
++        }
++        context
++                .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
++                .emit("expiration", null);
+     }
+ 
+     @NonNull
+diff --git a/android/src/main/java/com/asterinet/react/bgactions/RNBackgroundActionsTask.java b/android/src/main/java/com/asterinet/react/bgactions/RNBackgroundActionsTask.java
+--- a/android/src/main/java/com/asterinet/react/bgactions/RNBackgroundActionsTask.java
++++ b/android/src/main/java/com/asterinet/react/bgactions/RNBackgroundActionsTask.java
+@@ -104,12 +104,14 @@ final public class RNBackgroundActionsTask extends HeadlessJsTaskService {
+     @Override
+     public void onTimeout(int startId) {
+         super.onTimeout(startId);
++        BackgroundActionsModule.emitExpiration();
+         stopSelf(startId);
+     }
+ 
+     @Override
+     public void onTimeout(int startId, int fgsType) {
+         super.onTimeout(startId, fgsType);
++        BackgroundActionsModule.emitExpiration();
+         stopSelf(startId);
+     }
+ 
+diff --git a/ios/RNBackgroundActions.m b/ios/RNBackgroundActions.m
+--- a/ios/RNBackgroundActions.m
++++ b/ios/RNBackgroundActions.m
+@@ -5,13 +5,22 @@
+     UIBackgroundTaskIdentifier bgTask;
+ }
+ 
++- (instancetype)init
++{
++    self = [super init];
++    if (self) {
++        bgTask = UIBackgroundTaskInvalid;
++    }
++    return self;
++}
++
+ RCT_EXPORT_MODULE()
+ - (NSArray<NSString *> *)supportedEvents
+ {
+     return @[@"expiration"];
+ }
+ 
+-- (void) _start
++- (BOOL) _start
+ {
+     [self _stop];
+     bgTask = [[UIApplication sharedApplication] beginBackgroundTaskWithName:@"RNBackgroundActions" expirationHandler:^{
+@@ -16,6 +26,7 @@ RCT_EXPORT_MODULE()
+         [[UIApplication sharedApplication] endBackgroundTask: self->bgTask];
+         self->bgTask = UIBackgroundTaskInvalid;
+     }];
++    return bgTask != UIBackgroundTaskInvalid;
+ }
+ 
+ - (void) _stop
+@@ -36,7 +47,11 @@ RCT_EXPORT_MODULE()
+                   resolver:(RCTPromiseResolveBlock)resolve
+                   rejecter:(RCTPromiseRejectBlock)reject)
+ {
+-    [self _start];
++    if (![self _start]) {
++        reject(@"E_BACKGROUND_TASK_UNAVAILABLE",
++               @"iOS did not grant background execution time.", nil);
++        return;
++    }
+     resolve(nil);
+ }
+ 

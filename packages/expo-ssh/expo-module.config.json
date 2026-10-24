@@ -1,0 +1,11 @@
+{
+  "platforms": ["apple", "android"],
+  "apple": {
+    "modules": ["BoltPocketSshModule"],
+    "podspecPath": "ios/BoltPocketSsh.podspec",
+    "swiftModuleName": "BoltPocketSsh"
+  },
+  "android": {
+    "modules": ["dev.boltpocket.app.ssh.BoltPocketSshModule"]
+  }
+}

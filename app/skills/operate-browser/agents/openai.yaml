@@ -1,0 +1,6 @@
+interface:
+  display_name: "操作浏览器"
+  short_description: "安全读取、导航并操作 Agent 创建的网页与 H5 预览"
+  default_prompt: "Use $operate-browser to inspect a page, navigate it, and safely click or type only where the browser snapshot permits."
+policy:
+  allow_implicit_invocation: true

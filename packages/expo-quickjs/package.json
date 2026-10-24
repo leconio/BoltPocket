@@ -1,0 +1,38 @@
+{
+  "name": "@boltpocket/expo-quickjs",
+  "version": "0.1.0",
+  "description": "Bounded isolated QuickJS execution for the BoltPocket Expo app",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "react-native": "./src/index.ts",
+      "import": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test src/**/*.test.ts && sh scripts/test-native-host.sh",
+    "test:native": "sh scripts/test-native-host.sh",
+    "verify:vendor": "node scripts/verify-vendor.mjs"
+  },
+  "dependencies": {
+    "expo-modules-core": "57.0.10"
+  },
+  "peerDependencies": {
+    "expo": "*",
+    "react-native": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.2",
+    "eslint": "^9.39.5",
+    "eslint-config-expo": "~57.0.1",
+    "expo": "~57.0.12",
+    "react-native": "0.86.2",
+    "typescript": "~6.0.3"
+  }
+}

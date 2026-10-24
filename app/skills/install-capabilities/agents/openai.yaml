@@ -1,0 +1,6 @@
+interface:
+  display_name: "安装第三方 Skill 与 MCP"
+  short_description: "固定格式诊断；确认后完整安装 Skill 包或 MCP"
+  default_prompt: "使用 $install-capabilities 只诊断这个第三方 Skill 完整包或 MCP，并按固定格式报告兼容性。"
+policy:
+  allow_implicit_invocation: true
