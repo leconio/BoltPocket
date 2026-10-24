@@ -53,7 +53,7 @@ A followup audit used seven more model calls and 68 s of page Processed time in 
 
 **Content checks were not all successful.** Four CSV costs totaled HKD300 and were verified from the applied Diff. The first plan was vague. The audit added a start time and IFC Mall alternative, but the model still wrote `Obs time noted` instead of the exact timestamp and did not adequately separate general storm information from Hong Kong warnings. Those failures remain in the published acceptance summary. No manually corrected document is presented as model output.
 
-Numerical rows and the task prompt are in [data/s25-20261024](../data/s25-20261024). Private device serials, PIDs, operation paths, credential helpers, recordings and system logs are not included. The original videos remain local; this source publication does not publish those recordings.
+Numerical rows and the task prompt are in [data/s25-20261024](../data/s25-20261024). Private device serials, PIDs, operation paths, credential helpers and system logs are not included. The original recordings remain local. The [README weather demo](../README.md#s25-cached-prefill-demo) publishes an approved 27.4-second video from a separate cached weather lookup: the first 20 seconds are 4× playback and the final 7.4 seconds are 1×. That run restored 7,417 fixed-prefix tokens and added 89 new prefill tokens on its first call. Its video is not a recording of the 142-second budget/itinerary task above.
 
 ## Definitions and provenance
 
