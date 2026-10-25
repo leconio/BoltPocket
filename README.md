@@ -1,5 +1,31 @@
 # BoltPocket
 
+The current local build keeps the Wield navigation and chat interface. Open
+**Settings → Models** to download either local model, see progress, cancel/retry,
+and choose the default. Downloaded models also appear in the existing conversation
+model picker. No model weights are bundled.
+
+| Model | Download size | Android default | iOS default |
+|---|---:|---|---|
+| Ternary Bonsai 2 · 2B · Q2_0 | 546,689,504 bytes | CPU | Metal |
+| Nemotron 3.5 Bolt E4B · UD-Q4_K_XL | 5,060,482,240 bytes | OpenCL | Metal |
+
+Downloads use pinned Hugging Face revisions and streaming native SHA-256 verification.
+Only a verified file can be selected or loaded. Keep the app open while downloading;
+cancelled or interrupted transfers restart from the beginning. Models use separate
+files in app documents storage and are excluded from iCloud backup on iOS.
+
+**The downloadable Nemotron file differs from the historical benchmark artifact
+described below. Those measurements do not establish the new file's performance
+or memory fit.** See [model identities and licenses](docs/MODEL.md).
+
+Download acceptance on 2026-10-25: both full artifacts passed native verification
+on the S25; default selection survived restart, and both appeared in the existing
+conversation picker. Cancellation, retry, low storage and failed verification are
+covered by controller tests. Android and iOS build from the same frozen source.
+The signed iOS app was installed, and native verifier tests passed; the iPhone
+was locked, so its on-device download flow remains unverified.
+
 [中文说明](README.zh-CN.md) · [Limitations](docs/LIMITATIONS.md) · [Measured results](docs/BENCHMARKS.md) · [Build guide](docs/BUILD.md)
 
 A mobile agent experiment with **on-device llama.cpp inference**, a React Native / Expo chat interface, and the Pi 0.83.0 session and tool loop. The chat and project code is adapted from the author's Wield application. BoltPocket has its own app identity, `dev.boltpocket.app`, and uses no Wield account or inference backend.

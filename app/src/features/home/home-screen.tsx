@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { IconButton, type IconName } from "@/components/ui";
+import { IconButton } from "@/components/ui";
 import { getPinnedProjects, getRecentProjects } from "@/domain/app-state";
 import type { Project } from "@/domain/models";
 import { useI18n } from "@/i18n/i18n-provider";
@@ -37,6 +37,7 @@ export function HomeScreen() {
   const pinnedProjects = getPinnedProjects(state);
   const recentProjects = getRecentProjects(state);
   const visibleProjects = recentProjects.slice(0, HOME_ITEM_LIMIT);
+  const hasMoreProjects = recentProjects.length > HOME_ITEM_LIMIT;
 
   const openDrawer = () =>
     (navigation as unknown as { openDrawer: () => void }).openDrawer();
@@ -110,14 +111,7 @@ export function HomeScreen() {
           </View>
         ) : null}
 
-        <View style={styles.section}>
-          <SectionTitle
-            actionIcon="list-outline"
-            actionLabel={t("home.screen.allProjects")}
-            onAction={openAllProjects}
-            palette={palette}
-            title={t("home.screen.recentProjects")}
-          />
+        <View style={styles.projectsSection}>
           <View
             style={[
               styles.listCard,
@@ -127,7 +121,7 @@ export function HomeScreen() {
             {visibleProjects.length ? (
               visibleProjects.map((project, index) => (
                 <RecentProjectRow
-                  isLast={index === visibleProjects.length - 1}
+                  isLast={!hasMoreProjects && index === visibleProjects.length - 1}
                   key={project.id}
                   onPress={() => openProject(project.id)}
                   palette={palette}
@@ -142,6 +136,14 @@ export function HomeScreen() {
                 palette={palette}
               />
             )}
+            {hasMoreProjects ? (
+              <EmptyRow
+                icon="list-outline"
+                label={t("home.screen.allProjects")}
+                onPress={openAllProjects}
+                palette={palette}
+              />
+            ) : null}
           </View>
         </View>
       </ScrollView>
@@ -150,15 +152,9 @@ export function HomeScreen() {
 }
 
 function SectionTitle({
-  actionIcon,
-  actionLabel,
-  onAction,
   palette,
   title,
 }: {
-  actionIcon?: IconName;
-  actionLabel?: string;
-  onAction?: () => void;
   palette: ReturnType<typeof useAppPalette>;
   title: string;
 }) {
@@ -167,14 +163,6 @@ function SectionTitle({
       <Text style={[styles.sectionTitle, { color: palette.text }]}>
         {title}
       </Text>
-      {actionLabel && onAction ? (
-        <IconButton
-          icon={actionIcon ?? "add"}
-          label={actionLabel}
-          onPress={onAction}
-          palette={palette}
-        />
-      ) : null}
     </View>
   );
 }
@@ -261,7 +249,7 @@ function EmptyRow({
   onPress,
   palette,
 }: {
-  icon: "folder-open-outline";
+  icon: "folder-open-outline" | "list-outline";
   label: string;
   onPress: () => void;
   palette: ReturnType<typeof useAppPalette>;
@@ -299,6 +287,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
   },
   section: { marginTop: spacing.xl },
+  projectsSection: { marginTop: spacing.md },
   sectionHeader: {
     alignItems: "center",
     flexDirection: "row",

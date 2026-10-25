@@ -15,6 +15,10 @@ class BoltNative(private val event: (String) -> Unit) {
 }
 
 class BoltRuntimeModule : Module() {
+  private val downloadRoute = DownloadRoute()
+  private val artifacts by lazy {
+    ModelArtifacts(File(requireNotNull(appContext.reactContext).filesDir, "models"))
+  }
   private fun configureVulkan() {
     val intent = appContext.currentActivity?.intent
     val traceLabel = intent?.getStringExtra("boltTraceLabel")
@@ -96,6 +100,28 @@ class BoltRuntimeModule : Module() {
       android.system.Os.setenv("BOLT_CACHE_DEVICE_ID", android.os.Build.FINGERPRINT, true)
       val layers = appContext.currentActivity?.intent?.getIntExtra("boltGpuLayers", gpu) ?: gpu
       bridge.load(File(ctx.getExternalFilesDir(null), "model.gguf").absolutePath, layers, 6)
+    }
+    AsyncFunction("modelArtifactInfo") { spec: String -> artifacts.info(spec) }
+    AsyncFunction("beginModelDownloadRoute") {
+      val intent = appContext.currentActivity?.intent
+      val host = intent?.getStringExtra("boltDownloadProxyHost")
+      if (host != null && intent != null) {
+        record(downloadRoute.begin(host, intent.getIntExtra("boltDownloadProxyPort", 0),
+          intent.getStringExtra("boltDownloadProxyCountry") ?: ""))
+      }
+    }
+    AsyncFunction("endModelDownloadRoute") { downloadRoute.end() }
+    AsyncFunction("commitModelArtifact") { spec: String -> artifacts.commit(spec) }
+    AsyncFunction("loadModelArtifact") { spec: String, gpu: Int ->
+      val path = artifacts.verifiedPath(spec)
+      configureVulkan()
+      val ctx = requireNotNull(appContext.reactContext)
+      val kernelCache = File(ctx.cacheDir, "opencl-kernels").apply { mkdirs() }
+      android.system.Os.setenv("GGML_OPENCL_KERNEL_CACHE_DIR", kernelCache.absolutePath, true)
+      val prefixCache = File(ctx.noBackupFilesDir, "llama-prefix-cache").apply { mkdirs() }
+      android.system.Os.setenv("BOLT_PREFIX_CACHE_DIR", prefixCache.absolutePath, true)
+      android.system.Os.setenv("BOLT_CACHE_DEVICE_ID", android.os.Build.FINGERPRINT, true)
+      bridge.load(path, gpu, 6)
     }
     AsyncFunction("generate") { payload: String, max: Int, tag: String -> bridge.generate(payload, max, tag) }
     AsyncFunction("probe") { options: String ->
