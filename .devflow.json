@@ -13,6 +13,7 @@
       "preset": "boltpocket-opencl-android",
       "env": {
         "EXPO_PUBLIC_BOLTPOCKET_LOCAL_ONLY": "1",
+        "EXPO_PUBLIC_BOLTPOCKET_MODEL_PROFILE": "bonsai2",
         "BOLT_VULKAN": "0",
         "BOLTPOCKET_ANDROID_ABIS": "arm64-v8a",
         "BOLTPOCKET_BUILD_JOBS": "6",
@@ -107,6 +108,138 @@
           ]
         }
       ]
+    },
+    "air": {
+      "env": {
+        "BOLTPOCKET_BUILD_JOBS": "2",
+        "EXPO_PUBLIC_BOLTPOCKET_LOCAL_ONLY": "1",
+        "EXPO_PUBLIC_BOLTPOCKET_MODEL_PROFILE": "bonsai2",
+        "EXPO_PUBLIC_BOLTPOCKET_GPU_LAYERS": "99",
+        "EXPO_NO_TELEMETRY": "1",
+        "CI": "1"
+      },
+      "prepare": [
+        {
+          "name": "pnpm",
+          "outputs": [
+            "node_modules/.modules.yaml"
+          ],
+          "inputs": [
+            "package.json",
+            "**/package.json",
+            "pnpm-lock.yaml",
+            "pnpm-workspace.yaml",
+            "patches/*"
+          ],
+          "argv": [
+            "pnpm",
+            "install",
+            "--frozen-lockfile"
+          ],
+          "for": [
+            "build",
+            "native",
+            "deps",
+            "signed"
+          ]
+        },
+        {
+          "name": "ssh-ios",
+          "outputs": [
+            "packages/expo-ssh/ios/vendor/ssh2.xcframework/Info.plist"
+          ],
+          "inputs": [
+            "packages/expo-ssh/scripts/build-ios-dependencies.sh",
+            "packages/expo-ssh/ios/*.podspec"
+          ],
+          "argv": [
+            "bash",
+            "packages/expo-ssh/scripts/build-ios-dependencies.sh"
+          ],
+          "for": [
+            "build",
+            "signed"
+          ]
+        },
+        {
+          "name": "bolt-ios",
+          "outputs": [
+            "packages/expo-bolt-runtime/ios/libboltcore_ios.a",
+            "build/bolt-native-ios-ninja/receipt.json"
+          ],
+          "inputs": [
+            "packages/expo-bolt-runtime/cpp/**",
+            "tools/bolt/build_native.py",
+            "tools/bolt/ios_tools.py",
+            "tools/bolt/build_ios.py",
+            "tools/bolt/ios_sign.py",
+            "packages/expo-bolt-runtime/expo-module.config.json",
+            "packages/expo-bolt-runtime/BoltRuntime.podspec",
+            "app/app.config.ts"
+          ],
+          "argv": [
+            "python3",
+            "tools/bolt/build_native.py",
+            "ios"
+          ],
+          "for": [
+            "build",
+            "native",
+            "signed"
+          ]
+        },
+        {
+          "name": "expo-ios",
+          "outputs": [
+            "app/ios/BoltPocket.xcodeproj/project.pbxproj"
+          ],
+          "inputs": [
+            "app/app.json",
+            "app/app.config.ts",
+            "app/package.json",
+            "app/assets/boltpocket/**",
+            "packages/*/expo-module.config.json",
+            "packages/*/*.podspec",
+            "packages/expo-ssh/app.plugin.cjs",
+            "tools/bolt/prebuild.mjs"
+          ],
+          "argv": [
+            "node",
+            "tools/bolt/prebuild.mjs",
+            "ios"
+          ],
+          "for": [
+            "build",
+            "signed"
+          ]
+        },
+        {
+          "name": "pods",
+          "outputs": [
+            "app/ios/Pods/Manifest.lock",
+            "app/ios/BoltPocket.xcworkspace/contents.xcworkspacedata"
+          ],
+          "inputs": [
+            "app/package.json",
+            "packages/*/*.podspec",
+            "packages/expo-ssh/ios/*.podspec",
+            "packages/expo-ssh/app.plugin.cjs",
+            "tools/bolt/prebuild.mjs",
+            "packages/*/expo-module.config.json",
+            "app/app.config.ts"
+          ],
+          "argv": [
+            "pod",
+            "install"
+          ],
+          "for": [
+            "build",
+            "signed"
+          ],
+          "cwd": "app/ios"
+        }
+      ],
+      "preset": "air-node24-pods"
     }
   },
   "targets": {
@@ -159,6 +292,70 @@
           ]
         }
       }
+    },
+    "ios": {
+      "commands": {
+        "signed": {
+          "artifacts": [
+            "build/bolt-native-ios-ninja/receipt.json",
+            "build/bolt-ios/receipt.json"
+          ],
+          "steps": [
+            [
+              "python3",
+              "tools/bolt/build_ios.py",
+              "--signed"
+            ]
+          ]
+        },
+        "build": {
+          "artifacts": [
+            "build/bolt-native-ios-ninja/receipt.json",
+            "build/bolt-ios/receipt.json"
+          ],
+          "steps": [
+            [
+              "swiftc",
+              "packages/expo-bolt-runtime/ios/ModelArtifacts.swift",
+              "tools/bolt/test_model_artifacts.swift",
+              "-o",
+              "build/model-artifact-tests"
+            ],
+            [
+              "build/model-artifact-tests"
+            ],
+            [
+              "python3",
+              "tools/bolt/build_ios.py"
+            ]
+          ]
+        },
+        "native": {
+          "artifacts": [
+            "build/bolt-native-ios-ninja/receipt.json"
+          ],
+          "steps": [
+            [
+              "python3",
+              "-c",
+              "print(\"Native iOS archive prepared\")"
+            ]
+          ]
+        },
+        "metal-check": {
+          "artifacts": [
+            "build/metal-embed-regression/receipt.json",
+            "build/metal-embed-regression/build.log"
+          ],
+          "steps": [
+            [
+              "python3",
+              "tools/bolt/test_metal_embed.py"
+            ]
+          ]
+        }
+      },
+      "runner": "air"
     }
   }
 }

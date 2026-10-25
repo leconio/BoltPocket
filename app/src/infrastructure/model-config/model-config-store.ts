@@ -1,6 +1,6 @@
 import * as SecureStore from "expo-secure-store";
 import { LOCAL_INFERENCE } from "@/config/local-inference";
-import { localProfile, localProvider, localRegistry, localRuntimeConfig } from "./local-model";
+import { localProfileFor, localProvider, loadLocalRegistry, loadLocalRuntimeConfig } from "./local-model";
 import { listOpenAICodexModelIds } from "@boltpocket/agent-runtime";
 
 import {
@@ -239,7 +239,7 @@ async function summary(stored: StoredRegistry): Promise<ModelRegistrySummary> {
 }
 
 export async function loadModelRegistry(): Promise<ModelRegistrySummary | null> {
-  if (LOCAL_INFERENCE) return localRegistry;
+  if (LOCAL_INFERENCE) return loadLocalRegistry();
   const stored = await readStoredRegistry();
   return stored ? await summary(stored) : null;
 }
@@ -293,7 +293,8 @@ export async function loadRoutedModelRuntimeConfig(
 ): Promise<RoutedModelRuntimeConfig> {
   if (LOCAL_INFERENCE) {
     if (role !== "main") throw new Error("本地版本仅启用手机上的文本模型。");
-    return { provider: localProvider, profile: localProfile, apiKey: "", thinkingLevel: "off" };
+    const config = await loadLocalRuntimeConfig();
+    return { provider: localProvider, profile: localProfileFor(config.modelProfileId), apiKey: "", thinkingLevel: "off" };
   }
   const stored = await readStoredRegistry();
   if (!stored) throw new ModelConfigStorageError("请先添加模型服务。");
@@ -324,8 +325,7 @@ export async function loadModelRuntimeConfigByProfile(
   modelProfileId: string,
 ): Promise<ResolvedModelRuntimeConfig> {
   if (LOCAL_INFERENCE) {
-    if (modelProfileId !== localProfile.id) throw new Error("此本地模型不可用。");
-    return localRuntimeConfig;
+    return loadLocalRuntimeConfig(modelProfileId);
   }
   const stored = await readStoredRegistry();
   if (!stored) throw new ModelConfigStorageError("请先添加模型服务。");
@@ -356,7 +356,7 @@ export async function loadModelRuntimeConfigByProfile(
 }
 
 export async function loadModelConfig(): Promise<ModelConfigSummary | null> {
-  if (LOCAL_INFERENCE) return { ...localRuntimeConfig, hasApiKey: true, apiKeyMask: null };
+  if (LOCAL_INFERENCE) return { ...await loadLocalRuntimeConfig(), hasApiKey: true, apiKeyMask: null };
   const stored = await readStoredRegistry();
   if (!stored) return null;
   const route = resolvePublicModelRoute(stored.registry, "main");

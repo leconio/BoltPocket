@@ -43,9 +43,10 @@ export function resolveAppConfig(
         icon: "./assets/boltpocket/icon.png",
         bundleIdentifier: "dev.boltpocket.app",
         associatedDomains: [],
-        entitlements: {
-          "com.apple.developer.kernel.increased-memory-limit": true,
-        },
+        entitlements:
+          process.env.BOLTPOCKET_IOS_INCREASED_MEMORY === "1"
+            ? { "com.apple.developer.kernel.increased-memory-limit": true }
+            : {},
         infoPlist: {
           ...config.ios?.infoPlist,
           CFBundleDisplayName: "BoltPocket",
@@ -73,6 +74,7 @@ export function resolveAppConfig(
             ].includes(pluginName(plugin) ?? ""),
         )
         .concat([
+          ["expo-build-properties", { ios: { enableSceneSupport: true, deploymentTarget: "18.0" } }],
           [
             "expo-splash-screen",
             {

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { StyleSheet, Text, View } from "react-native";
+import { Platform, StyleSheet, Text, View } from "react-native";
 import { ChatScreen } from "./chat-screen";
 import {
   useAppActions,
@@ -17,6 +17,7 @@ import {
 import { useAppPalette } from "@/theme/tokens";
 import { useKeepAwake } from "expo-keep-awake";
 import NativeBolt from "@boltpocket/expo-bolt-runtime";
+import { LOCAL_GPU_LAYERS, LOCAL_MODEL_NAME, LOCAL_SAMPLING } from "@/config/local-inference";
 
 const select = createAppStateFieldsSelector(
   "activeConversationId",
@@ -83,13 +84,20 @@ export function LocalChatScreen() {
           params.probe.startsWith("long-") ||
           params.probe === "decode"
         ) {
-          await NativeBolt.load(99);
+          await NativeBolt.load(LOCAL_GPU_LAYERS);
           checkNativeError();
+          let completeProbe: () => void = () => undefined;
+          let failProbe: (error: Error) => void = () => undefined;
+          const probeDone = new Promise<void>((resolve, reject) => {
+            completeProbe = resolve;
+            failProbe = reject;
+          });
           const sub = NativeBolt.addListener("onNativeEvent", ({ json }) => {
             const event = JSON.parse(json) as {
               type: string;
               tag?: string;
               text?: string;
+              message?: string;
             };
             if (event.type === "done" && event.tag === "gpu-short") {
               recordLocalEvent({
@@ -97,6 +105,9 @@ export function LocalChatScreen() {
                 answer: event.text,
                 ...(params.probe === "decode" ? {} : { expected_number: 4 }),
               });
+              completeProbe();
+            } else if (event.type === "error" || event.type === "kernel_error") {
+              failProbe(new Error(event.message ?? "Native probe failed"));
             }
           });
           try {
@@ -109,14 +120,20 @@ export function LocalChatScreen() {
               params.probe === "decode"
                 ? "In English, explain three benefits and one limitation of running a language model on a phone. Use about 80 words."
                 : `${repeats ? `Read this reference text and then answer only the number 4.\n<reference>${"blue green red ".repeat(repeats)}</reference>\n` : ""}Reply with the number: 2 + 2 =`;
-            await NativeBolt.generate(
-              JSON.stringify({
-                messages: [{ role: "user", content }],
-                cache_prompt: false,
-              }),
-              params.probe === "decode" ? 96 : 16,
-              "gpu-short",
-            );
+            // Native completion and JS event delivery are separate queues on
+            // iOS. Keep the listener until its final answer has been recorded.
+            await Promise.all([
+              NativeBolt.generate(
+                JSON.stringify({
+                  messages: [{ role: "user", content }],
+                  cache_prompt: false,
+                  sampling: LOCAL_SAMPLING,
+                }),
+                params.probe === "decode" ? 96 : 16,
+                "gpu-short",
+              ),
+              probeDone,
+            ]);
             checkNativeError();
           } finally {
             sub.remove();
@@ -153,6 +170,10 @@ export function LocalChatScreen() {
         }
       }
       checkNativeError();
+      if (Platform.OS === "ios") {
+        await pause(350);
+        await NativeBolt.captureView();
+      }
       recordLocalEvent({
         type: "fixture_finished",
         mode: params.probe ? "probe" : params.bench ? "bench" : "demo",
@@ -178,12 +199,15 @@ export function LocalChatScreen() {
     <View style={[styles.root, { backgroundColor: palette.background }]}>
       <ChatScreen
         conversationId={state.activeConversationId}
-        onBack={() => router.push("/conversations")}
+        onBack={() => {
+          if (router.canGoBack()) router.back();
+          else router.replace("/");
+        }}
         headerAccessory={
           <Text style={[styles.metrics, { color: palette.textTertiary }]}>
             {metrics
-              ? `${metrics.decode_tok_s?.toFixed(1)} tok/s · TTFT ${((metrics.submit_to_visible_ms ?? metrics.visible_ttft_ms ?? metrics.ttft_ms ?? 0) / 1000).toFixed(2)}s · ${metrics.android_pss_mib != null ? `PSS ${(metrics.android_pss_mib / 1024).toFixed(2)}` : `RSS ${((metrics.peak_memory_mib ?? 0) / 1024).toFixed(2)}`} GiB`
-              : "Nemotron 3.5 Bolt E4B · On-device inference"}
+              ? `${metrics.decode_tok_s?.toFixed(1)} tok/s · TTFT ${((metrics.submit_to_visible_ms ?? metrics.visible_ttft_ms ?? metrics.ttft_ms ?? 0) / 1000).toFixed(2)}s · ${metrics.android_pss_mib != null ? `PSS ${(metrics.android_pss_mib / 1024).toFixed(2)}` : `${metrics.memory_metric === "phys_footprint" ? "Footprint" : "RSS"} ${((metrics.peak_memory_mib ?? 0) / 1024).toFixed(2)}`} GiB`
+              : `${LOCAL_MODEL_NAME} · On-device inference`}
           </Text>
         }
       />

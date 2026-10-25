@@ -113,8 +113,20 @@ if (GGML_METAL_EMBED_LIBRARY)
             list(APPEND HEADERS_FOR_SRC ${METALLIB_KERNELS_FA_VEC_COMMON})
         endif()
 
+        # Snapshot synchronization may restore an older mtime. Bind generated
+        # embedded sources to content so an incremental build cannot retain a
+        # shader from a different source snapshot.
+        set(EMBED_FINGERPRINT "")
+        foreach(input IN ITEMS ${HEADERS_FOR_SRC} ${METALLIB_COMMON} ${METALLIB_IMPL} ${SRC})
+            file(SHA256 "${input}" INPUT_HASH)
+            string(APPEND EMBED_FINGERPRINT "${INPUT_HASH}\n")
+        endforeach()
+        string(SHA256 EMBED_HASH "${EMBED_FINGERPRINT}")
+        file(CONFIGURE OUTPUT "${EMBED}.sha256" CONTENT "${EMBED_HASH}\n" @ONLY)
+
         add_custom_command(
             OUTPUT "${ASM}"
+            BYPRODUCTS "${EMBED}"
             # Step 1: concatenate shared headers + this kernel source
             COMMAND cat ${HEADERS_FOR_SRC} ${SRC} > "${EMBED}.tmp1"
             # Step 2: remove internal #include and #pragma once
@@ -127,18 +139,21 @@ if (GGML_METAL_EMBED_LIBRARY)
             #   note: '-' is illegal in C symbols, so we use kind_sym; the macOS
             #   section name is limited to 16 chars so we keep it shared
             #   across kinds (__ggml_metallib) and only vary the global symbols.
-            COMMAND echo ".section __DATA,__ggml_metallib"                       >  "${ASM}"
+            COMMAND echo "// content-sha256: ${EMBED_HASH}"                       >  "${ASM}"
+            COMMAND echo ".section __DATA,__ggml_metallib"                       >> "${ASM}"
             COMMAND echo ".globl _ggml_metallib_${kind_sym}_start"               >> "${ASM}"
             COMMAND echo "_ggml_metallib_${kind_sym}_start:"                     >> "${ASM}"
             COMMAND echo .incbin "\"${EMBED}\""                                  >> "${ASM}"
             COMMAND echo ".globl _ggml_metallib_${kind_sym}_end"                 >> "${ASM}"
             COMMAND echo "_ggml_metallib_${kind_sym}_end:"                       >> "${ASM}"
-            DEPENDS ${HEADERS_FOR_SRC} ../ggml-common.h ggml-metal-impl.h
+            DEPENDS "${EMBED}.sha256" ${HEADERS_FOR_SRC} ../ggml-common.h ggml-metal-impl.h
                     kernels/${kind}.metal
             COMMENT "Generate embedded Metal library for ${kind}"
             VERBATIM
         )
 
+        set_source_files_properties("${ASM}" PROPERTIES
+            OBJECT_DEPENDS "${EMBED};${EMBED}.sha256")
         list(APPEND METALLIB_EMBED_ASM_FILES "${ASM}")
     endforeach()
 

@@ -1,6 +1,27 @@
 import type { SettingsMessageKey } from "../zh-CN/settings.ts";
 
 export const enSettingsMessages = {
+  "settings.local.intro": "Choose a local model. Downloads stay on this device. The default applies to your next message; a conversation model choice takes precedence.",
+  "settings.local.ready": "Downloaded · SHA-256 verified",
+  "settings.local.selected": "Default",
+  "settings.local.useModel": "Use model",
+  "settings.local.download": "Download",
+  "settings.local.cancel": "Cancel",
+  "settings.local.cancelling": "Cancelling…",
+  "settings.local.cancelFailed": "Could not cancel yet. Please try again.",
+  "settings.local.retry": "Retry download",
+  "settings.local.source": "Source",
+  "settings.local.missing": "Not downloaded",
+  "settings.local.verifying": "Verifying file…",
+  "settings.local.progress": "{percent}% · {received} / {total}",
+  "settings.local.downloadNote": "Download over Wi-Fi and keep the app open. Cancellation or an interruption requires a fresh download. Available storage is checked before downloading.",
+  "settings.local.nemotronNote": "This upstream file differs from the historical benchmark weights. Its speed and memory use need separate testing.",
+  "settings.local.networkError": "Download failed. Check your connection and retry.",
+  "settings.local.storageError": "Not enough storage. Free space for the model plus 256 MB and retry.",
+  "settings.local.integrityError": "File verification failed. The model was not enabled. Please retry.",
+  "settings.local.loadFailed": "Could not read model files. Reopen this page to retry.",
+  "settings.local.selectFailed": "Could not select the model. Please retry.",
+  "settings.local.linkFailed": "Could not open the link.",
   "release.crash.detail":
     "Your local data has not been cleared. Try rebuilding the screen; if it happens again, restart the app.",
   "release.crash.retry": "Try again",

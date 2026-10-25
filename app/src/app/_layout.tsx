@@ -38,6 +38,7 @@ function NavigationRoot() {
       }}
     >
       <Stack.Screen name="(drawer)" />
+      <Stack.Screen name="local-benchmark" />
       <Stack.Screen name="account" />
       <Stack.Screen name="projects" />
       <Stack.Screen name="memory" />

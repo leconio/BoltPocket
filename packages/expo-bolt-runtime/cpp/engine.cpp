@@ -18,6 +18,7 @@
 #include <thread>
 #include <atomic>
 #include <cstdlib>
+#include <cstdio>
 #include <filesystem>
 #include <cmath>
 #include <sys/resource.h>
@@ -83,6 +84,8 @@ static void native_log(enum ggml_log_level level, const char * text, void *) {
     }
 #if defined(__ANDROID__)
     __android_log_write(level == GGML_LOG_LEVEL_ERROR ? ANDROID_LOG_ERROR : ANDROID_LOG_INFO, "BoltLlama", text);
+#elif defined(__APPLE__)
+    std::fputs(text, stderr);
 #endif
 }
 void bolt_cancel() { cancelled=true; }
@@ -183,7 +186,7 @@ void bolt_load(const std::string & path,int gpu_layers,int threads,const BoltEve
 #endif
                     },
                     {"context",llama_n_ctx(ctx)},{"batch",256},{"ubatch",cp.n_ubatch},{"flash_attention",cp.flash_attn_type != LLAMA_FLASH_ATTN_TYPE_DISABLED},{"thinking",false},
-                    {"temperature",1.0},{"top_p",0.95},{"seed",42},{"system_info",llama_print_system_info()}});
+                    {"seed",42},{"system_info",llama_print_system_info()}});
     } catch(const std::exception & e) { event(emit,{{"type","error"},{"message",e.what()}}); }
 }
 void bolt_generate(const std::string & messages_json,int max_tokens,const std::string & tag,const BoltEvent & emit) {
@@ -196,6 +199,7 @@ void bolt_generate(const std::string & messages_json,int max_tokens,const std::s
         // Diagnostics are restricted to the fixed synthetic probe, never chat.
         trace.enabled = !trace.directory.empty() && tag == "gpu-short";
         common_chat_templates_inputs input; input.enable_thinking=false;
+        input.reasoning_format=COMMON_REASONING_FORMAT_DEEPSEEK;
         input.chat_template_kwargs["enable_thinking"]="false";
         input.chat_template_kwargs["conversational_mode"]="false";
         auto payload=json::parse(messages_json);
@@ -249,6 +253,9 @@ void bolt_generate(const std::string & messages_json,int max_tokens,const std::s
         // A sliding-window cache cannot roll back beyond retained local attention.
         const auto min_position = llama_memory_seq_pos_min(llama_get_memory(ctx), 0);
         if (reused > 0 && min_position > 0 && reused < (int)cached_tokens.size()) reused = 0;
+        // Recurrent/hybrid models may also reject rollback even when position zero
+        // is retained. Detect that before choosing a fixed-prefix checkpoint.
+        if (reused > 0 && !llama_memory_seq_rm(llama_get_memory(ctx), 0, reused, -1)) reused = 0;
         std::string cache_origin = reused > 0 ? "memory" : "none";
         if (!fixed_prefix.empty() && reused < (int)fixed_prefix.size()) {
             try {
@@ -300,10 +307,22 @@ void bolt_generate(const std::string & messages_json,int max_tokens,const std::s
             }
         }
         auto prompt_end=Clock::now();
+        const auto sampling = payload.is_object() && payload.contains("sampling") && payload["sampling"].is_object()
+            ? payload["sampling"] : json::object();
+        const auto temperature = std::clamp(sampling.value("temperature", 1.0f), 0.0f, 2.0f);
+        const auto top_p = std::clamp(sampling.value("top_p", 0.95f), 0.01f, 1.0f);
+        const auto top_k = std::clamp(sampling.value("top_k", 0), 0, 1000);
+        const auto presence = std::clamp(sampling.value("presence_penalty", 0.0f), 0.0f, 2.0f);
+        const auto repeat_last_n = std::clamp(sampling.value("repeat_last_n", 64), 0, 1024);
         auto chain=llama_sampler_chain_init(llama_sampler_chain_default_params());
-        llama_sampler_chain_add(chain,llama_sampler_init_top_p(0.95,1));
-        llama_sampler_chain_add(chain,llama_sampler_init_temp(1.0));
+        if (presence != 0.0f && repeat_last_n > 0)
+            llama_sampler_chain_add(chain,llama_sampler_init_penalties(llama_vocab_n_tokens(vocab),repeat_last_n,1.0f,0.0f,presence));
+        if (top_k > 0) llama_sampler_chain_add(chain,llama_sampler_init_top_k(top_k));
+        llama_sampler_chain_add(chain,llama_sampler_init_top_p(top_p,1));
+        llama_sampler_chain_add(chain,llama_sampler_init_temp(temperature));
         llama_sampler_chain_add(chain,llama_sampler_init_dist(42));
+        if (presence != 0.0f && repeat_last_n > 0)
+            for (int i=std::max(0,n-repeat_last_n);i<n;++i) llama_sampler_accept(chain,tokens[i]);
         std::string output; int count=0; double ttft=0; Clock::time_point first{},last{};
         bool eos=false; double decode_ms=0;
         for(int i=0;i<max_tokens;i++) {
@@ -331,9 +350,16 @@ void bolt_generate(const std::string & messages_json,int max_tokens,const std::s
         event(emit,{{"type","done"},{"tag",tag},{"text",parsed.content},{"tool_calls",calls},
             {"prompt_tokens",n},{"output_tokens",count},{"max_tokens",max_tokens},{"finish_reason",eos?"eos":"length"},
             {"cancelled",cancelled.load()},{"ttft_ms",ttft},{"prefill_ms",ms(start,prompt_end)},{"total_ms",ms(start,end)},
+            {"sampling",{{"temperature",temperature},{"top_p",top_p},{"top_k",top_k},{"presence_penalty",presence},{"repeat_last_n",repeat_last_n},{"repeat_penalty",1.0},{"min_p",0.0}}},
             {"decode_tok_s",interval>0?(count-1)*1000.0/interval:0},{"decode_compute_tok_s",decode_ms>0?count*1000.0/decode_ms:0},
             {"llama_eval_ms",perf.t_eval_ms},{"llama_eval_tokens",perf.n_eval},
-            {"peak_memory_mib",peak.load()},{"end_memory_mib",memory_mb()},{"prompt_cache",cache_prompt},{"cache_reused_tokens",reused},{"prefill_tokens",n-reused}});
+            {"memory_metric",
+#if defined(__APPLE__)
+            "phys_footprint"
+#else
+            "rss"
+#endif
+            },{"peak_memory_mib",peak.load()},{"end_memory_mib",memory_mb()},{"prompt_cache",cache_prompt},{"cache_reused_tokens",reused},{"prefill_tokens",n-reused}});
     } catch(const std::exception & e) {
         cached_tokens.clear();
         running=false; if(sampler.joinable())sampler.join();

@@ -1629,7 +1629,7 @@ export class PiMobileAgentRuntime implements AgentRuntime {
     }
     const supportsImages = config.capabilities?.vision ?? true;
     const core = config.providerId === LOCAL_PROVIDER_ID
-      ? (await import("./native-bolt-runtime")).createNativePiRuntime(this.#sessionPersistence, sessionId)
+      ? (await import("./native-bolt-runtime")).createNativePiRuntime(this.#sessionPersistence, sessionId, config.modelProfileId)
       : createOpenAICompatiblePiRuntime({
       baseUrl: config.baseUrl,
       modelId: config.model,

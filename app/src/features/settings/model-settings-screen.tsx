@@ -9,6 +9,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ScreenHeader } from "@/components/ui";
 import { ModelSettingsCard } from "@/features/settings/model-settings-card";
+import { LocalModelSettingsCard } from "@/features/settings/local-model-settings-card";
+import { LOCAL_INFERENCE } from "@/config/local-inference";
 import { useI18n } from "@/i18n/i18n-provider";
 import { spacing, useAppPalette } from "@/theme/tokens";
 
@@ -45,7 +47,7 @@ export function ModelSettingsScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <ModelSettingsCard />
+          {LOCAL_INFERENCE ? <LocalModelSettingsCard /> : <ModelSettingsCard />}
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

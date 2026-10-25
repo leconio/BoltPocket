@@ -12,10 +12,11 @@ import {
   type Model,
 } from "@earendil-works/pi-ai";
 import Native from "@boltpocket/expo-bolt-runtime";
+import { Platform } from "react-native";
+import { artifactSpec, localModelById, LOCAL_MODELS, DEFAULT_LOCAL_MODEL_ID, type LocalModel } from "../model-config/local-model-catalog";
 import {
   LOCAL_BASE_URL,
   LOCAL_CONTEXT_WINDOW,
-  LOCAL_MODEL_ID,
   LOCAL_PROVIDER_ID,
 } from "@/config/local-inference";
 
@@ -37,6 +38,7 @@ export type NativeMetrics = {
   total_ms?: number;
   decode_tok_s?: number;
   peak_memory_mib?: number;
+  memory_metric?: "phys_footprint" | "rss";
   android_pss_mib?: number;
   android_graphics_pss_mib?: number;
   visible_ttft_ms?: number;
@@ -44,6 +46,7 @@ export type NativeMetrics = {
   tool_calls?: { id: string; name: string; arguments: string }[];
 };
 let loaded: Promise<void> | undefined;
+let loadedArtifact: string | undefined;
 let requestNumber = 0;
 let nativeQueue: Promise<unknown> = Promise.resolve();
 let activeTag: string | undefined;
@@ -77,7 +80,12 @@ export function prepareLocalModelFile() {
   return Native.prepareModelFile();
 }
 
-function loadModel() {
+function loadModel(model: LocalModel) {
+  const identity = model.sha256;
+  if (loadedArtifact !== identity) {
+    loaded = undefined;
+    loadedArtifact = identity;
+  }
   loaded ??= new Promise<void>((resolve, reject) => {
     const sub = Native.addListener("onNativeEvent", ({ json }) => {
       const event = JSON.parse(json) as NativeMetrics;
@@ -91,7 +99,8 @@ function loadModel() {
         reject(new Error(event.message));
       }
     });
-    void Native.load(99).catch((error: unknown) => {
+    void Native.loadModelArtifact(artifactSpec(model),
+      Platform.OS === "ios" ? model.iosGpuLayers : model.androidGpuLayers).catch((error: unknown) => {
       sub.remove();
       loaded = undefined;
       reject(error);
@@ -161,8 +170,10 @@ const nativeStream: StreamFn = (model, context, options) => {
   const job = nativeQueue.then(async () => {
     if (options?.signal?.aborted) throw new Error("cancelled");
     activeTag = tag;
-    if (sessionId && !loaded) nativeInferenceProgress.loading(sessionId, tag);
-    await loadModel();
+    const artifact = LOCAL_MODELS.find((artifact) => artifact.modelId === model.id);
+    if (!artifact) throw new Error("Unknown local model");
+    if (sessionId && (!loaded || loadedArtifact !== artifact.sha256)) nativeInferenceProgress.loading(sessionId, tag);
+    await loadModel(artifact);
     if (options?.signal?.aborted) throw new Error("cancelled");
     const start = performance.now();
     let text = "";
@@ -281,7 +292,8 @@ const nativeStream: StreamFn = (model, context, options) => {
     });
     options?.signal?.addEventListener("abort", abort, { once: true });
     await Native.generate(
-      JSON.stringify({ ...nativePayload(context), cache_prompt: cachePrompt }),
+      JSON.stringify({ ...nativePayload(context), cache_prompt: cachePrompt,
+        sampling: artifact.sampling }),
       Math.min(options?.maxTokens ?? 256, 256),
       tag,
     );
@@ -298,10 +310,12 @@ const nativeStream: StreamFn = (model, context, options) => {
 export function createNativePiRuntime(
   sessionPersistence?: RuntimeSessionPersistencePort,
   sessionId?: string,
+  modelProfileId = DEFAULT_LOCAL_MODEL_ID as string,
 ) {
+  const artifact = localModelById(modelProfileId);
   const model: Model<"openai-completions"> = {
-    id: LOCAL_MODEL_ID,
-    name: "Nemotron 3.5 Bolt E4B",
+    id: artifact.modelId,
+    name: artifact.name,
     api: "openai-completions",
     provider: LOCAL_PROVIDER_ID,
     baseUrl: LOCAL_BASE_URL,
