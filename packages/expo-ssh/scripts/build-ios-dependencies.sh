@@ -19,6 +19,11 @@ readonly openssl_ios_version="3.5.7.0"
 readonly libssh2_version="1.11.1"
 readonly cmake_version="4.4.2"
 readonly ios_deployment_target="16.4"
+readonly build_jobs="${BOLTPOCKET_BUILD_JOBS:-2}"
+if [[ ! "${build_jobs}" =~ ^[1-9][0-9]*$ ]]; then
+  echo "BOLTPOCKET_BUILD_JOBS must be a positive integer" >&2
+  exit 64
+fi
 
 readonly openssl_source_sha256="a8c0d28a529ca480f9f36cf5792e2cd21984552a3c8e4aa11a24aa31aeac98e8"
 readonly openssl_crypto_sha256="fac69cdc8a96173dfe97dab01778b5b9e7c7f11b3cb1c34a27fe3c85f04c3937"
@@ -152,9 +157,9 @@ configure_libssh2 \
   "${openssl_dir}/crypto.xcframework/ios-arm64_x86_64-simulator/libcrypto.a"
 
 "${cmake_bin}" --build "${device_build_dir}" --config Release \
-  --target libssh2_static --parallel 8
+  --target libssh2_static --parallel "${build_jobs}"
 "${cmake_bin}" --build "${simulator_build_dir}" --config Release \
-  --target libssh2_static --parallel 8
+  --target libssh2_static --parallel "${build_jobs}"
 
 readonly staged_framework="${build_root}/ssh2.xcframework"
 xcodebuild -create-xcframework \
@@ -164,10 +169,12 @@ xcodebuild -create-xcframework \
   -headers "${source_dir}/libssh2-${libssh2_version}/include" \
   -output "${staged_framework}"
 
-lipo "${staged_framework}/ios-arm64/libssh2.a" \
+xcrun lipo "${staged_framework}/ios-arm64/libssh2.a" \
   -verify_arch arm64
-lipo "${staged_framework}/ios-arm64_x86_64-simulator/libssh2.a" \
-  -verify_arch arm64 x86_64
+for architecture in arm64 x86_64; do
+  xcrun lipo "${staged_framework}/ios-arm64_x86_64-simulator/libssh2.a" \
+    -verify_arch "${architecture}"
+done
 
 mkdir -p "$(dirname "${output_path}")"
 readonly recovery_framework="${build_root}/previous-ssh2.xcframework"

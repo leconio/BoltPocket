@@ -112,3 +112,4 @@ packages/expo-bolt-runtime/cpp/build*/
 /secrets/
 /models/
 /packages/expo-ssh/android/src/main/jniLibs/
+/packages/expo-ssh/ios/vendor/
