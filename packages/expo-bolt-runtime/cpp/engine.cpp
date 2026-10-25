@@ -1,4 +1,5 @@
 #include "engine.h"
+#include "generation_budget.h"
 #include "llama.h"
 #include "prefix-cache.h"
 #include "chat.h"
@@ -214,7 +215,7 @@ void bolt_generate(const std::string & messages_json,int max_tokens,const std::s
         if(n>=0) throw std::runtime_error("Unexpected tokenization result");
         std::vector<llama_token> tokens(-n);
         n=llama_tokenize(vocab,prompt.data(),(int)prompt.size(),tokens.data(),tokens.size(),true,true); tokens.resize(n);
-        if(n+max_tokens>llama_n_ctx(ctx)) throw std::runtime_error("Conversation exceeds the native " + std::to_string(llama_n_ctx(ctx)) + "-token context");
+        const int output_budget = bolt_output_budget(n, llama_n_ctx(ctx), max_tokens);
         // Derive only system/tool tokens, before the first user message. Two distinct
         // user sentinels make the boundary independent of token merges or templates.
         std::vector<llama_token> fixed_prefix;
@@ -325,7 +326,7 @@ void bolt_generate(const std::string & messages_json,int max_tokens,const std::s
             for (int i=std::max(0,n-repeat_last_n);i<n;++i) llama_sampler_accept(chain,tokens[i]);
         std::string output; int count=0; double ttft=0; Clock::time_point first{},last{};
         bool eos=false; double decode_ms=0;
-        for(int i=0;i<max_tokens;i++) {
+        for(int i=0;i<output_budget;i++) {
             if(cancelled) break;
             auto token=llama_sampler_sample(chain,ctx,-1);
             if(llama_vocab_is_eog(vocab,token)) { eos=true; break; }
@@ -348,7 +349,7 @@ void bolt_generate(const std::string & messages_json,int max_tokens,const std::s
         auto parsed=chat.finish(); auto calls=json::array();
         for(const auto &t:parsed.tool_calls) calls.push_back({{"name",t.name},{"arguments",t.arguments},{"id",t.id}});
         event(emit,{{"type","done"},{"tag",tag},{"text",parsed.content},{"tool_calls",calls},
-            {"prompt_tokens",n},{"output_tokens",count},{"max_tokens",max_tokens},{"finish_reason",eos?"eos":"length"},
+            {"prompt_tokens",n},{"output_tokens",count},{"max_tokens",output_budget},{"requested_max_tokens",max_tokens},{"finish_reason",eos?"eos":"length"},
             {"cancelled",cancelled.load()},{"ttft_ms",ttft},{"prefill_ms",ms(start,prompt_end)},{"total_ms",ms(start,end)},
             {"sampling",{{"temperature",temperature},{"top_p",top_p},{"top_k",top_k},{"presence_penalty",presence},{"repeat_last_n",repeat_last_n},{"repeat_penalty",1.0},{"min_p",0.0}}},
             {"decode_tok_s",interval>0?(count-1)*1000.0/interval:0},{"decode_compute_tok_s",decode_ms>0?count*1000.0/decode_ms:0},

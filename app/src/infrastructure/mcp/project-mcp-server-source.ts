@@ -1,0 +1,186 @@
+import type {
+  McpServerRuntimeDefinition,
+  McpServerSource,
+} from "@boltpocket/mcp-client";
+
+import type {
+  CredentialVaultItem,
+  InternalCredentialVaultPort,
+} from "@/application/ports/credential-vault";
+import type {
+  McpConnection,
+  McpConnectionRepositoryPort,
+} from "@/application/ports/mcp-connections";
+
+function exactSecretRedactor(secrets: Set<string>) {
+  return (value: string) => {
+    let result = value;
+    for (const secret of [...secrets].sort(
+      (left, right) => right.length - left.length,
+    )) {
+      if (secret) result = result.split(secret).join("••••");
+    }
+    return result;
+  };
+}
+
+function sameOrigin(left: string | undefined, right: string) {
+  if (!left) return false;
+  try {
+    return new URL(left).origin === new URL(right).origin;
+  } catch {
+    return false;
+  }
+}
+
+export class ProjectMcpServerSource implements McpServerSource {
+  readonly #connections: McpConnectionRepositoryPort;
+  readonly #fetch?: typeof fetch;
+  readonly #vault: InternalCredentialVaultPort;
+
+  constructor(options: {
+    connections: McpConnectionRepositoryPort;
+    fetch?: typeof fetch;
+    vault: InternalCredentialVaultPort;
+  }) {
+    this.#connections = options.connections;
+    this.#fetch = options.fetch;
+    this.#vault = options.vault;
+  }
+
+  async listForProject(_projectId: string) {
+    const [connections, credentials] = await Promise.all([
+      this.#connections.list(),
+      this.#vault.list(),
+    ]);
+    const credentialsById = new Map(
+      credentials.map((credential) => [credential.id, credential]),
+    );
+    return connections
+      .filter((connection) => connection.enabled)
+      .map((connection) =>
+        this.#runtimeDefinition(
+          connection,
+          connection.authentication.kind === "vault-token"
+            ? connection.authentication.credentialIds.map((credentialId) =>
+                credentialsById.get(credentialId),
+              )
+            : [],
+        ),
+      );
+  }
+
+  #runtimeDefinition(
+    connection: McpConnection,
+    credentials: readonly (CredentialVaultItem | undefined)[],
+  ): McpServerRuntimeDefinition {
+    const secrets = new Set<string>();
+    const credentialRevision = credentials
+      .map((credential) => credential?.updatedAt ?? "missing")
+      .join(":");
+    const common = {
+      id: connection.id,
+      name: connection.name,
+      url: connection.serverUrl,
+      revision: `${connection.updatedAt}:${credentialRevision || "none"}`,
+      ...(this.#fetch ? { fetch: this.#fetch } : {}),
+      ...(connection.allowedToolNames
+        ? { allowedToolNames: connection.allowedToolNames }
+        : {}),
+      ...(connection.approveTools
+        ? { approveTools: connection.approveTools }
+        : {}),
+      trustToolAnnotations: connection.trustToolAnnotations,
+      redact: exactSecretRedactor(secrets),
+    } satisfies Omit<
+      McpServerRuntimeDefinition,
+      "authProvider" | "requestHeaders" | "requestQuery"
+    >;
+
+    if (connection.authentication.kind === "none") return common;
+    if (connection.authentication.kind === "oauth") {
+      return {
+        ...common,
+        requestHeaders: async () => {
+          throw new Error(
+            "Reconnect this legacy connection using an API token.",
+          );
+        },
+      };
+    }
+
+    const credentialIds = connection.authentication.credentialIds;
+    const read = async (credentialId: string) => {
+      const resolved = await this.#vault.readInternal(credentialId);
+      if (
+        resolved.item.kind !== "api-token" ||
+        resolved.secret.kind !== "api-token" ||
+        resolved.item.agentAccess !== "internal-only"
+      ) {
+        throw new Error("MCP 连接引用的密码本记录不是内部 API Token。");
+      }
+      if (!sameOrigin(resolved.item.endpoint, connection.serverUrl)) {
+        throw new Error("MCP Token 的密码本服务地址与连接地址不同源。");
+      }
+      secrets.add(resolved.secret.token);
+      return { item: resolved.item, token: resolved.secret.token };
+    };
+    if (credentials.some((credential) => !credential)) {
+      return {
+        ...common,
+        requestHeaders: async () => {
+          throw new Error("MCP 连接引用的密码本记录不存在。");
+        },
+      };
+    }
+    const queryParameterName = connection.authentication.queryParameterName;
+    if (queryParameterName) {
+      return {
+        ...common,
+        requestQuery: async () => {
+          const resolved = await read(credentialIds[0]!);
+          return {
+            [queryParameterName]: resolved.token,
+          };
+        },
+      };
+    }
+    const firstCredential = credentials[0]!;
+    if (
+      credentialIds.length > 1 ||
+      firstCredential.apiAuthentication === "header"
+    ) {
+      return {
+        ...common,
+        requestHeaders: async () => {
+          const headers: Record<string, string> = {};
+          const normalizedHeaderNames = new Set<string>();
+          for (const credentialId of credentialIds) {
+            const resolved = await read(credentialId);
+            const headerName = resolved.item.apiHeaderName;
+            const normalizedHeaderName = headerName?.toLowerCase();
+            if (
+              resolved.item.apiAuthentication !== "header" ||
+              !headerName ||
+              !normalizedHeaderName
+            ) {
+              throw new Error("MCP Token 的自定义 Header 名称缺失。");
+            }
+            if (normalizedHeaderNames.has(normalizedHeaderName)) {
+              throw new Error("MCP Token 的自定义 Header 名称重复。");
+            }
+            normalizedHeaderNames.add(normalizedHeaderName);
+            headers[headerName] = resolved.token;
+          }
+          return headers;
+        },
+      };
+    }
+    return {
+      ...common,
+      authProvider: {
+        token: async () => (await read(credentialIds[0]!)).token,
+      },
+    };
+  }
+}

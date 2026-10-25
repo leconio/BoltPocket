@@ -1,0 +1,33 @@
+import type { HomeMessageKey } from "../zh-CN/home.ts";
+
+export const enHomeMessages = {
+  "home.drawer.browser": "Browser",
+  "home.drawer.collapse": "Collapse sidebar",
+  "home.drawer.memory": "Memory",
+  "home.drawer.mcp": "MCP",
+  "home.drawer.newConversation": "New conversation",
+  "home.drawer.settings": "Settings",
+  "home.drawer.skills": "Skills",
+  "home.conversations.all": "All conversations",
+  "home.conversations.delete.cancel": "Cancel",
+  "home.conversations.delete.confirmIdle":
+    "“{title}” and its review history will be deleted from this device. Project files will not be rolled back.",
+  "home.conversations.delete.confirmRunning":
+    "“{title}” is still running. Deleting it will stop the task and remove this conversation’s review history.",
+  "home.conversations.delete.couldNot": "Could not delete",
+  "home.conversations.delete.delete": "Delete",
+  "home.conversations.delete.retry": "Try again later.",
+  "home.conversations.delete.title": "Delete conversation?",
+  "home.conversations.empty": "No conversations yet",
+  "home.conversations.new": "New conversation",
+  "home.conversations.open": "Open conversation {title}",
+  "home.conversations.openRunning": "Open running conversation {title}",
+  "home.conversations.project": "{project} · Conversations",
+  "home.conversations.quick": "Quick conversation",
+  "home.screen.allProjects": "View all projects",
+  "home.screen.newProject": "New project",
+  "home.screen.openDrawer": "Open sidebar",
+  "home.screen.openProject": "Open project {name}",
+  "home.screen.pinnedProjects": "Pinned projects",
+  "home.screen.recentProjects": "Projects",
+} as const satisfies Record<HomeMessageKey, string>;

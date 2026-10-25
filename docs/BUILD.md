@@ -29,7 +29,6 @@ export OPENCL_INCLUDE_DIR=/absolute/path/to/OpenCL-Headers
 export OPENCL_LIBRARY=/private/absolute/path/to/libOpenCL.so
 export BOLT_OPENCL=1 BOLT_VULKAN=0
 export BOLTPOCKET_ANDROID_ABIS=arm64-v8a BOLTPOCKET_BUILD_JOBS=6
-export EXPO_PUBLIC_BOLTPOCKET_LOCAL_ONLY=1
 export EXPO_NO_TELEMETRY=1
 
 bash packages/expo-ssh/scripts/build-android-dependencies.sh

@@ -14,6 +14,16 @@ store, separate from local download preferences. The standalone global build cal
 user-configured model APIs directly, retaining data-consent checks and requiring
 no BoltPocket account/backend.
 
+The standalone app has no account sign-in, hosted Skill Market, cloud-document
+OAuth broker or reporting service. Public Skill URLs and user-configured SSH/MCP
+connections remain available. Legacy cloud-document resources are kept out of
+the writable local workspace. Chat activity uses the original content height;
+native model loading, prefill and generation progress remain visible.
+
+Local replies default to a 2,048-token output budget, capped at 4,096 tokens and
+the remaining context. This removes the former 256-token application limit;
+it does not establish whether a model follows instructions or uses tools well.
+
 | Model | Download size | Android default | iOS default |
 |---|---:|---|---|
 | Ternary Bonsai 2 · 2B · Q2_0 | 546,689,504 bytes | CPU | Metal |

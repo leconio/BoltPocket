@@ -1,5 +1,10 @@
 # BoltPocket
 
+当前独立版已移除账号、托管 Skill 市场、Google/Notion 文档授权中转和举报服务。
+第三方模型 API、公开 Skill 链接及用户自行配置的 SSH/MCP 连接继续保留。
+聊天执行内容恢复按内容自然高度展示，同时保留本地模型加载、预填充和生成进度。
+本地回复默认输出预算为 2,048 token，最多 4,096 token，并受剩余上下文限制。
+
 [English](README.md) · [完整局限性](docs/LIMITATIONS.md) · [实测口径](docs/BENCHMARKS.md) · [构建说明](docs/BUILD.md)
 
 一个在手机 App 进程内运行 llama.cpp 的实验项目。聊天页面、项目工作区和 Pi 0.83.0 会话/工具逻辑复用自作者的 Wield 代码，采用独立身份 `dev.boltpocket.app`。不依赖 Wield 账号或推理后端，保留 SSH、MCP 和项目工具代码。
