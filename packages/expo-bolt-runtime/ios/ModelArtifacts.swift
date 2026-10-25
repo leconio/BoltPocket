@@ -46,7 +46,11 @@ final class ModelArtifacts {
     let input = try FileHandle(forReadingFrom: part)
     defer { try? input.close() }
     var hasher = SHA256()
-    while let data = try input.read(upToCount: 1024 * 1024), !data.isEmpty { hasher.update(data: data) }
+    while try autoreleasepool(invoking: {
+      guard let data = try input.read(upToCount: 1024 * 1024), !data.isEmpty else { return false }
+      hasher.update(data: data)
+      return true
+    }) {}
     let digest = hasher.finalize().map { String(format: "%02x", $0) }.joined()
     guard digest == spec.sha256 else { throw failure("Model checksum mismatch") }
     // Same-volume rename; only a complete, verified download becomes usable.

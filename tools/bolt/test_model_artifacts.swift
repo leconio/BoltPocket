@@ -1,5 +1,6 @@
 import Foundation
 import CryptoKit
+import Darwin
 
 @main struct ModelArtifactTests {
   static func expect(_ condition: Bool) { precondition(condition) }
@@ -28,6 +29,27 @@ import CryptoKit
     expect(try store.info(large)["ready"] as? Bool == false)
     let unsafe = raw.replacingOccurrences(of: "test-model", with: "../escape")
     do { _ = try store.info(unsafe); fatalError("Accepted path traversal") } catch {}
+    // Foundation file reads can leave autoreleased buffers alive across a loop.
+    // Exercise a file large enough to catch memory growing with artifact size.
+    let chunk = Data(repeating: 0xA5, count: 1024 * 1024)
+    var expectedHash = SHA256()
+    for _ in 0..<128 { expectedHash.update(data: chunk) }
+    let largeSha = expectedHash.finalize().map { String(format: "%02x", $0) }.joined()
+    let largeRaw = "{\"key\":\"large-model\",\"bytes\":134217728,\"sha256\":\"\(largeSha)\"}"
+    let largeInfo = try store.info(largeRaw)
+    let largePart = URL(string: largeInfo["partialUri"] as! String)!
+    FileManager.default.createFile(atPath: largePart.path, contents: nil)
+    let writer = try FileHandle(forWritingTo: largePart)
+    for _ in 0..<128 { try writer.write(contentsOf: chunk) }
+    try writer.close()
+    var before = rusage(), after = rusage()
+    getrusage(RUSAGE_SELF, &before)
+    try store.commit(largeRaw)
+    getrusage(RUSAGE_SELF, &after)
+    let growth = after.ru_maxrss - before.ru_maxrss
+    expect(growth < 64 * 1024 * 1024)
+    expect(try store.info(largeRaw)["ready"] as? Bool == true)
+    print("PASS: 128 MiB streamed verification; peak RSS growth \(growth) bytes")
     print("PASS: checksum rejection, atomic completion, receipt validation, truncation, 64-bit size, path confinement")
   }
 }
