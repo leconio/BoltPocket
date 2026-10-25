@@ -9,7 +9,7 @@ import type { AppState } from "@/domain/app-state";
 import { useI18n } from "@/i18n/i18n-provider";
 import { localizedErrorMessage } from "@/i18n/translate";
 import {
-  loadModelRegistry,
+  loadAvailableModelRegistry,
   resolvePublicModelProfile,
   type ModelProfile,
   type ModelRegistrySummary,
@@ -58,7 +58,7 @@ export function ConversationModelControl({
     let focused = true;
     setLoading(true);
     setLoadError(null);
-    void loadModelRegistry()
+    void loadAvailableModelRegistry()
       .then((value) => {
         if (focused) setRegistry(value);
       })
@@ -88,6 +88,8 @@ export function ConversationModelControl({
         pinnedProfileId ?? registry.routes.main,
       );
     } catch {
+      if (!registry.models.some((model) => model.id === registry.routes.main))
+        return null;
       return resolvePublicModelProfile(registry, registry.routes.main);
     }
   }, [pinnedProfileId, registry]);

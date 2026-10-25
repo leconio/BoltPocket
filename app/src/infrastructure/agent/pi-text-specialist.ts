@@ -65,12 +65,12 @@ function specialistSessionId(input: TextDelegationInput) {
 }
 
 async function defaultModelConfigProvider() {
-  const { loadModelRegistry, loadModelRuntimeConfig } =
+  const { loadModelRegistry, loadApiModelRuntimeConfig } =
     await import("@/infrastructure/model-config");
   const registry = await loadModelRegistry();
   // A dedicated route is optional. The main model can host the same isolated
   // child session when no separate collaboration route is configured.
-  return loadModelRuntimeConfig(
+  return loadApiModelRuntimeConfig(
     registry?.routes.delegate ? "delegate" : "main",
   );
 }

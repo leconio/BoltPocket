@@ -24,6 +24,12 @@ export function LibrarySettingsList({
         title={t("library.settings.model")}
       />
       <ListRow
+        icon="download-outline"
+        onPress={() => router.push("/settings/local-models")}
+        palette={palette}
+        title={t("settings.local.title")}
+      />
+      <ListRow
         icon="globe-outline"
         onPress={() => router.push("/settings/browser")}
         palette={palette}

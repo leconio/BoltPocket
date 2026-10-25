@@ -1,9 +1,18 @@
 # BoltPocket
 
 The current local build keeps the Wield navigation and chat interface. Open
-**Settings → Models** to download either local model, see progress, cancel/retry,
-and choose the default. Downloaded models also appear in the existing conversation
-model picker. No model weights are bundled.
+**Settings → Models** retains the original third-party API/provider editor.
+Use **Local models & downloads** (also available directly in Settings) to download
+either local model, see progress, cancel/retry and choose it as the default.
+Downloaded models and configured API models appear together in the existing
+conversation picker. No model weights are bundled.
+
+Existing API endpoints, keys, protocols and specialist routes are preserved.
+An existing API default remains active unless you explicitly choose a local model;
+**Use API default** switches back. API credentials stay in the original secure
+store, separate from local download preferences. The standalone global build calls
+user-configured model APIs directly, retaining data-consent checks and requiring
+no BoltPocket account/backend.
 
 | Model | Download size | Android default | iOS default |
 |---|---:|---|---|
@@ -62,7 +71,11 @@ These are different workloads, not interchangeable benchmark runs. TTFT is not s
 - Bounded project shell, project text changes with Diff/version checks/recovery, public HTTP reads, and retained SSH/MCP integration code.
 - English is the default demo/UI language. The reused localization resources also include Simplified Chinese.
 
-Inference is local. Weather requests, SSH, MCP and other user-configured connections use the network. The project shell is a scoped in-memory shell, not unrestricted access to Android's OS shell. Included connector code is not evidence that every connector works without additional setup.
+Local-model inference stays on the device. API models send requests to the provider
+you configure, with the existing data-consent flow. Weather requests, SSH, MCP and
+other user-configured connections use the network. The project shell is a scoped
+in-memory shell, not unrestricted access to Android's OS shell. Included connector
+code is not evidence that every connector works without additional setup.
 
 ## Build and run
 
