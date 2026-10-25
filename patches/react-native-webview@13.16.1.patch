@@ -28,11 +28,11 @@ index d9f10d8..4314603 100644
 +    WebViewAssetLoader wieldProjectPreviewAssetLoader;
 +    private @Nullable
 +    String wieldProjectPreviewHost;
-+    private boolean wieldAllowsFileDownloads = true;
-+    private boolean wieldAllowsCamera = false;
-+    private boolean wieldAllowsMicrophone = false;
-+    private boolean wieldAllowsLocation = false;
-+    private boolean wieldAllowsFileSelection = false;
++    private boolean boltpocketAllowsFileDownloads = true;
++    private boolean boltpocketAllowsCamera = false;
++    private boolean boltpocketAllowsMicrophone = false;
++    private boolean boltpocketAllowsLocation = false;
++    private boolean boltpocketAllowsFileSelection = false;
      protected boolean sendContentSizeChangeEvents = false;
      private OnScrollDispatchHelper mOnScrollDispatchHelper;
      protected boolean hasScrollEvent = false;
@@ -56,43 +56,43 @@ index d9f10d8..4314603 100644
 +    }
 +
 +    public void setInhandAllowsFileDownloads(boolean allowed) {
-+        wieldAllowsFileDownloads = allowed;
++        boltpocketAllowsFileDownloads = allowed;
 +    }
 +
 +    public boolean getInhandAllowsFileDownloads() {
-+        return wieldAllowsFileDownloads;
++        return boltpocketAllowsFileDownloads;
 +    }
 +
 +    public void setInhandAllowsCamera(boolean allowed) {
-+        wieldAllowsCamera = allowed;
++        boltpocketAllowsCamera = allowed;
 +    }
 +
 +    public boolean getInhandAllowsCamera() {
-+        return wieldAllowsCamera;
++        return boltpocketAllowsCamera;
 +    }
 +
 +    public void setInhandAllowsMicrophone(boolean allowed) {
-+        wieldAllowsMicrophone = allowed;
++        boltpocketAllowsMicrophone = allowed;
 +    }
 +
 +    public boolean getInhandAllowsMicrophone() {
-+        return wieldAllowsMicrophone;
++        return boltpocketAllowsMicrophone;
 +    }
 +
 +    public void setInhandAllowsLocation(boolean allowed) {
-+        wieldAllowsLocation = allowed;
++        boltpocketAllowsLocation = allowed;
 +    }
 +
 +    public boolean getInhandAllowsLocation() {
-+        return wieldAllowsLocation;
++        return boltpocketAllowsLocation;
 +    }
 +
 +    public void setInhandAllowsFileSelection(boolean allowed) {
-+        wieldAllowsFileSelection = allowed;
++        boltpocketAllowsFileSelection = allowed;
 +    }
 +
 +    public boolean getInhandAllowsFileSelection() {
-+        return wieldAllowsFileSelection;
++        return boltpocketAllowsFileSelection;
 +    }
 +
      public void setBasicAuthCredential(RNCBasicAuthCredential credential) {
@@ -347,7 +347,7 @@ index 5aec987..817b61d 100644
      private var mUserAgent: String? = null
      private var mUserAgentWithApplicationName: String? = null
 +    private val wieldPreviewHost =
-+        "^preview-([a-f0-9]{32})\\.wield\\.invalid$".toRegex()
++        "^preview-([a-f0-9]{32})\\.boltpocket\\.invalid$".toRegex()
      private val HTML_ENCODING = "UTF-8"
      private val HTML_MIME_TYPE = "text/html"
      private val HTTP_METHOD_POST = "POST"
@@ -385,7 +385,7 @@ index 5aec987..817b61d 100644
 +        val match = wieldPreviewHost.matchEntire(host) ?: return
 +        val snapshotId = match.groupValues[1]
 +        val previewBase = try {
-+            File(view.context.cacheDir, "inhand/project-previews").canonicalFile
++            File(view.context.cacheDir, "boltpocket/project-previews").canonicalFile
 +        } catch (error: Exception) {
 +            Log.w(TAG, "Unable to resolve the Wield preview cache", error)
 +            return
@@ -413,7 +413,7 @@ index 5aec987..817b61d 100644
 +        val runtimeRoot = try {
 +            File(
 +                view.context.cacheDir,
-+                "inhand/h5-runtimes/v1/files"
++                "boltpocket/h5-runtimes/v1/files"
 +            ).canonicalFile
 +        } catch (error: Exception) {
 +            Log.w(TAG, "Unable to resolve the Wield H5 runtime cache", error)
@@ -479,28 +479,28 @@ diff --git a/android/src/oldarch/com/reactnativecommunity/webview/RNCWebViewMana
          mRNCWebViewManagerImpl.setAllowFileAccess(view, value);
      }
  
-+    @ReactProp(name = "wieldAllowsFileDownloads", defaultBoolean = true)
-+    public void setWieldAllowsFileDownloads(RNCWebViewWrapper view, boolean value) {
++    @ReactProp(name = "boltpocketAllowsFileDownloads", defaultBoolean = true)
++    public void setBoltpocketAllowsFileDownloads(RNCWebViewWrapper view, boolean value) {
 +        mRNCWebViewManagerImpl.setInhandAllowsFileDownloads(view, value);
 +    }
 +
-+    @ReactProp(name = "wieldAllowsCamera", defaultBoolean = false)
-+    public void setWieldAllowsCamera(RNCWebViewWrapper view, boolean value) {
++    @ReactProp(name = "boltpocketAllowsCamera", defaultBoolean = false)
++    public void setBoltpocketAllowsCamera(RNCWebViewWrapper view, boolean value) {
 +        mRNCWebViewManagerImpl.setInhandAllowsCamera(view, value);
 +    }
 +
-+    @ReactProp(name = "wieldAllowsMicrophone", defaultBoolean = false)
-+    public void setWieldAllowsMicrophone(RNCWebViewWrapper view, boolean value) {
++    @ReactProp(name = "boltpocketAllowsMicrophone", defaultBoolean = false)
++    public void setBoltpocketAllowsMicrophone(RNCWebViewWrapper view, boolean value) {
 +        mRNCWebViewManagerImpl.setInhandAllowsMicrophone(view, value);
 +    }
 +
-+    @ReactProp(name = "wieldAllowsLocation", defaultBoolean = false)
-+    public void setWieldAllowsLocation(RNCWebViewWrapper view, boolean value) {
++    @ReactProp(name = "boltpocketAllowsLocation", defaultBoolean = false)
++    public void setBoltpocketAllowsLocation(RNCWebViewWrapper view, boolean value) {
 +        mRNCWebViewManagerImpl.setInhandAllowsLocation(view, value);
 +    }
 +
-+    @ReactProp(name = "wieldAllowsFileSelection", defaultBoolean = false)
-+    public void setWieldAllowsFileSelection(RNCWebViewWrapper view, boolean value) {
++    @ReactProp(name = "boltpocketAllowsFileSelection", defaultBoolean = false)
++    public void setBoltpocketAllowsFileSelection(RNCWebViewWrapper view, boolean value) {
 +        mRNCWebViewManagerImpl.setInhandAllowsFileSelection(view, value);
 +    }
 +
@@ -515,32 +515,32 @@ diff --git a/android/src/newarch/com/reactnativecommunity/webview/RNCWebViewMana
      }
  
 +    @Override
-+    @ReactProp(name = "wieldAllowsFileDownloads", defaultBoolean = true)
-+    public void setWieldAllowsFileDownloads(RNCWebViewWrapper view, boolean value) {
++    @ReactProp(name = "boltpocketAllowsFileDownloads", defaultBoolean = true)
++    public void setBoltpocketAllowsFileDownloads(RNCWebViewWrapper view, boolean value) {
 +        mRNCWebViewManagerImpl.setInhandAllowsFileDownloads(view, value);
 +    }
 +
 +    @Override
-+    @ReactProp(name = "wieldAllowsCamera", defaultBoolean = false)
-+    public void setWieldAllowsCamera(RNCWebViewWrapper view, boolean value) {
++    @ReactProp(name = "boltpocketAllowsCamera", defaultBoolean = false)
++    public void setBoltpocketAllowsCamera(RNCWebViewWrapper view, boolean value) {
 +        mRNCWebViewManagerImpl.setInhandAllowsCamera(view, value);
 +    }
 +
 +    @Override
-+    @ReactProp(name = "wieldAllowsMicrophone", defaultBoolean = false)
-+    public void setWieldAllowsMicrophone(RNCWebViewWrapper view, boolean value) {
++    @ReactProp(name = "boltpocketAllowsMicrophone", defaultBoolean = false)
++    public void setBoltpocketAllowsMicrophone(RNCWebViewWrapper view, boolean value) {
 +        mRNCWebViewManagerImpl.setInhandAllowsMicrophone(view, value);
 +    }
 +
 +    @Override
-+    @ReactProp(name = "wieldAllowsLocation", defaultBoolean = false)
-+    public void setWieldAllowsLocation(RNCWebViewWrapper view, boolean value) {
++    @ReactProp(name = "boltpocketAllowsLocation", defaultBoolean = false)
++    public void setBoltpocketAllowsLocation(RNCWebViewWrapper view, boolean value) {
 +        mRNCWebViewManagerImpl.setInhandAllowsLocation(view, value);
 +    }
 +
 +    @Override
-+    @ReactProp(name = "wieldAllowsFileSelection", defaultBoolean = false)
-+    public void setWieldAllowsFileSelection(RNCWebViewWrapper view, boolean value) {
++    @ReactProp(name = "boltpocketAllowsFileSelection", defaultBoolean = false)
++    public void setBoltpocketAllowsFileSelection(RNCWebViewWrapper view, boolean value) {
 +        mRNCWebViewManagerImpl.setInhandAllowsFileSelection(view, value);
 +    }
 +
@@ -553,11 +553,11 @@ diff --git a/src/RNCWebViewNativeComponent.ts b/src/RNCWebViewNativeComponent.ts
 @@ -145,5 +145,10 @@ export interface NativeProps extends ViewProps {
    // Android only
    allowFileAccess?: boolean;
-+  wieldAllowsFileDownloads?: WithDefault<boolean, true>;
-+  wieldAllowsCamera?: WithDefault<boolean, false>;
-+  wieldAllowsMicrophone?: WithDefault<boolean, false>;
-+  wieldAllowsLocation?: WithDefault<boolean, false>;
-+  wieldAllowsFileSelection?: WithDefault<boolean, false>;
++  boltpocketAllowsFileDownloads?: WithDefault<boolean, true>;
++  boltpocketAllowsCamera?: WithDefault<boolean, false>;
++  boltpocketAllowsMicrophone?: WithDefault<boolean, false>;
++  boltpocketAllowsLocation?: WithDefault<boolean, false>;
++  boltpocketAllowsFileSelection?: WithDefault<boolean, false>;
    allowsProtectedMedia?: boolean;
    allowsFullscreenVideo?: boolean;
    androidLayerType?: WithDefault<'none' | 'software' | 'hardware', 'none'>;
