@@ -140,6 +140,7 @@ type FakeControl = {
   value: string;
   getAttribute: (name: string) => string | null;
   setAttribute: (name: string, value: string) => void;
+  removeAttribute: (name: string) => void;
   closest: () => null;
   getBoundingClientRect: () => { width: number; height: number };
   scrollIntoView: () => void;
@@ -187,6 +188,7 @@ function interactiveFixture(
     maxLength: -1,
     getAttribute: (name: string) => attributes.get(name) ?? null,
     setAttribute: (name: string, value: string) => attributes.set(name, value),
+    removeAttribute: (name: string) => attributes.delete(name),
     closest: () => (formBound ? ({} as never) : null),
     getBoundingClientRect: () => ({ width: 120, height: 44 }),
     scrollIntoView: () => undefined,
@@ -218,7 +220,10 @@ function interactiveFixture(
     HTMLInputElement: FakeInput,
     HTMLTextAreaElement: FakeTextArea,
     InputEvent: class FakeInputEvent {},
-    getComputedStyle: () => ({ display: "block", visibility: "visible" }),
+    getComputedStyle: (_element?: unknown) => ({
+      display: "block",
+      visibility: "visible",
+    }),
     location: { href: "https://example.com/search" },
     URL,
     window,
@@ -235,10 +240,54 @@ function interactiveFixture(
   return {
     element,
     execute,
+    context,
     clicked: () => clicked,
     inputEvents: () => inputEvents,
   };
 }
+
+test("a hidden overlay cannot retain an ID reassigned to a visible control", () => {
+  const overlay = interactiveFixture("BUTTON", false, "Play again");
+  const direction = interactiveFixture("BUTTON", false, "Turn up");
+  const elements = [overlay.element, direction.element];
+  let overlayHidden = false;
+  overlay.context.document.querySelectorAll = (selector?: string) =>
+    selector === "[data-boltpocket-agent-control]"
+      ? elements.filter((element) =>
+          element.getAttribute("data-boltpocket-agent-control"),
+        )
+      : elements;
+  overlay.context.document.querySelector = (selector?: string) => {
+    const id = selector?.match(/control-\d+/u)?.[0];
+    return elements.find(
+      (element) => element.getAttribute("data-boltpocket-agent-control") === id,
+    )!;
+  };
+  overlay.context.getComputedStyle = (element?: unknown) => ({
+    display: overlayHidden && element === overlay.element ? "none" : "block",
+    visibility: "visible",
+  });
+  overlay.execute(
+    createBrowserSnapshotScript("browser-request-overlay-visible"),
+  );
+  overlayHidden = true;
+  const snapshot = overlay.execute(
+    createBrowserSnapshotScript("browser-request-overlay-hidden"),
+  );
+  const controls = snapshot.result.controls as { id: string; label: string }[];
+  assert.equal(controls.length, 1);
+  assert.equal(controls[0]?.label, "Turn up");
+  const result = overlay.execute(
+    createBrowserClickScript(
+      "browser-request-direction-click",
+      controls[0]!.id,
+      String(snapshot.result.revision),
+    ),
+  );
+  assert.equal(result.ok, true);
+  assert.equal(overlay.clicked(), 0);
+  assert.equal(direction.clicked(), 1);
+});
 
 test("interaction scripts bind click and input to the current page revision", () => {
   const input = interactiveFixture("INPUT");

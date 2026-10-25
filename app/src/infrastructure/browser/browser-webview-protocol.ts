@@ -349,7 +349,13 @@ const pageInspectionFunctions = `
     const rect = element.getBoundingClientRect();
     return style.display !== "none" && style.visibility !== "hidden" && rect.width > 0 && rect.height > 0;
   };
-  const controlsForPage = () => Array.from(document.querySelectorAll("a[href], button, input, textarea, select, summary, [role='button'], [role='link'], [role='tab'], [role='checkbox'], [role='radio'], [role='switch'], [role='menuitem']"))
+  const controlsForPage = () => {
+    // Hidden controls may keep an ID from an older snapshot. Clear the owned
+    // markers before assigning the current visible controls' IDs.
+    for (const element of document.querySelectorAll("[data-boltpocket-agent-control]")) {
+      element.removeAttribute("data-boltpocket-agent-control");
+    }
+    return Array.from(document.querySelectorAll("a[href], button, input, textarea, select, summary, [role='button'], [role='link'], [role='tab'], [role='checkbox'], [role='radio'], [role='switch'], [role='menuitem']"))
     .filter(isVisible)
     .slice(0, 80)
     .map((element, index) => {
@@ -435,6 +441,7 @@ const pageInspectionFunctions = `
         ...(disabled ? { disabled: true } : {}),
       };
     });
+  };
   ${revisionFunction}
 `;
 
